@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/classic-massok-be/api"
-	"github.com/classic-massok-be/data/mongo/utils"
+	"github.com/classic-massok/classic-massok-be/api"
+	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,7 +35,7 @@ func main() {
 				return fmt.Errorf("error connecting to mongo: %w", err)
 			}
 
-			utils.Database = client.Database("classic-massok")
+			cmmongo.Database = client.Database("classic-massok")
 
 			go func() {
 				err := serveHTTP()

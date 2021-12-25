@@ -1,4 +1,4 @@
-module github.com/classic-massok-be
+module github.com/classic-massok/classic-massok-be
 
 go 1.16
 

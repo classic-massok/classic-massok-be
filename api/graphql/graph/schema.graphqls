@@ -10,6 +10,10 @@ type User {
   phone: String
   canSMS: Boolean
   birthday: Time
+  createdAt: Time!
+  updatedAt: Time!
+  createdBy: ID!
+  updatedBy: ID!
 }
 
 input CreateUserInput {
@@ -26,6 +30,25 @@ type CreateUserOutput {
   id: ID!
 }
 
+input UpdateUserInput {
+  id: ID!
+  email: String
+  password: String
+  firstName: String
+  lastName: String
+  phone: String
+  canSMS: Boolean
+  birthday: Time
+}
+
+input DeleteUserInput {
+  id: ID!
+}
+
+type DeleteUserOutput {
+  success: Boolean!
+}
+
 type Query {
   user(id: ID!): User
   users: [User!]
@@ -33,6 +56,8 @@ type Query {
 
 type Mutation {
   createUser(input: CreateUserInput!): CreateUserOutput!
+  updateUser(input: UpdateUserInput!): User!
+  deleteUser(input: DeleteUserInput!): DeleteUserOutput!
 }
 
 scalar Time

@@ -53,4 +53,4 @@ models:
       - github.com/99designs/gqlgen/graphql.Int32
   Time:
     model:
-      - github.com/99designs/gqlgen/graphql.Time
+      - github.com/classic-massok/classic-massok-be/api/graphql/graph/types.Time

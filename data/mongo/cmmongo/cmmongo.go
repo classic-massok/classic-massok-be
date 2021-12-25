@@ -1,8 +1,9 @@
-package utils
+package cmmongo
 
 import (
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -10,12 +11,20 @@ import (
 var Database = &mongo.Database{}
 
 type Creator interface {
-	SetID(primitive.ObjectID)
+	SetOID(primitive.ObjectID)
 	SetAccounting(t time.Time, userID primitive.ObjectID)
 }
 
+type Reader interface {
+	SetID()
+}
+
+type BatchReader interface {
+	SetIDs()
+}
+
 type Updater interface {
-	UpdateAccounting(t time.Time, userID primitive.ObjectID)
+	GetUpdate() bson.M
 }
 
 type Order int

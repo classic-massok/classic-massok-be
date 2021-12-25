@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/classic-massok-be/data/mongo"
-	"github.com/classic-massok-be/data/mongo/utils"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/classic-massok/classic-massok-be/data/mongo"
+	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // NewUsersBiz is the constructure for the users business layers
 func NewUsersBiz() (*usersBiz, error) {
-	data, err := mongo.NewUsersData(utils.Database)
+	data, err := mongo.NewUsersData(cmmongo.Database)
 	if err != nil {
 		return nil, fmt.Errorf("error constructing users biz: %w", err)
 	}
@@ -28,22 +27,39 @@ type usersBiz struct {
 
 //counterfeiter:generate . usersData
 type usersData interface {
-	New(ctx context.Context, loggedInUserID primitive.ObjectID, user mongo.User) (string, error)
+	New(ctx context.Context, loggedInUserID string, user mongo.User) (string, error)
+	Get(ctx context.Context, id string) (*mongo.User, error)
+	GetAll(ctx context.Context) ([]*mongo.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, edit mongo.UserEdit) (*mongo.User, error)
+	Delete(ctx context.Context, id, loggedInUserID string) error
 }
 
 type User struct {
-	// Required fields
+	id        string
 	Email     string
 	FirstName string
 	LastName  string
-
-	// Optional fields
-	Phone    *string
-	CanSMS   *bool
-	Birthday *time.Time
+	Phone     *string
+	CanSMS    *bool
+	Birthday  *time.Time
+	Accounting
 }
 
-func (u *usersBiz) New(ctx context.Context, loggedInUserID primitive.ObjectID, password string, user User) (string, error) {
+func (u *User) GetID() string {
+	return u.id
+}
+
+type UserEdit struct {
+	Email     *string
+	Password  *string
+	FirstName *string
+	LastName  *string
+	Phone     *string
+	CanSMS    *bool
+	Birthday  *time.Time
+}
+
+func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user User) (string, error) {
 	passwordBytes := []byte(password)
 	hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
@@ -59,4 +75,102 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID primitive.ObjectID, p
 		CanSMS:    user.CanSMS,
 		Birthday:  user.Birthday,
 	})
+}
+
+func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
+	mongoUser, err := u.data.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &User{
+		mongoUser.GetID(),
+		mongoUser.Email,
+		mongoUser.FirstName,
+		mongoUser.LastName,
+		mongoUser.Phone,
+		mongoUser.CanSMS,
+		mongoUser.Birthday,
+		Accounting{
+			mongoUser.CreatedAt,
+			mongoUser.UpdatedAt,
+			mongoUser.CreatedBy,
+			mongoUser.UpdatedBy,
+		},
+	}, nil
+}
+
+func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
+	mongoUsers, err := u.data.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*User, len(mongoUsers))
+	for i, mongoUser := range mongoUsers {
+		users[i] = &User{
+			mongoUser.GetID(),
+			mongoUser.Email,
+			mongoUser.FirstName,
+			mongoUser.LastName,
+			mongoUser.Phone,
+			mongoUser.CanSMS,
+			mongoUser.Birthday,
+			Accounting{
+				mongoUser.CreatedAt,
+				mongoUser.UpdatedAt,
+				mongoUser.CreatedBy,
+				mongoUser.UpdatedBy,
+			},
+		}
+	}
+
+	return users, nil
+}
+
+func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, userEdit UserEdit) (*User, error) {
+	passwordBytes := []byte{}
+	if userEdit.Password != nil {
+		hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+
+		passwordBytes = hashedPassword
+	} else {
+		passwordBytes = nil
+	}
+
+	mongoUser, err := u.data.Edit(ctx, id, loggedInUserID, mongo.UserEdit{
+		Email:     userEdit.Email,
+		Password:  &passwordBytes,
+		FirstName: userEdit.FirstName,
+		LastName:  userEdit.LastName,
+		Phone:     userEdit.Phone,
+		CanSMS:    userEdit.CanSMS,
+		Birthday:  userEdit.Birthday,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &User{
+		mongoUser.GetID(),
+		mongoUser.Email,
+		mongoUser.FirstName,
+		mongoUser.LastName,
+		mongoUser.Phone,
+		mongoUser.CanSMS,
+		mongoUser.Birthday,
+		Accounting{
+			mongoUser.CreatedAt,
+			mongoUser.UpdatedAt,
+			mongoUser.CreatedBy,
+			mongoUser.UpdatedBy,
+		},
+	}, nil
+}
+
+func (u *usersBiz) Delete(ctx context.Context, id, loggedInUserID string) error {
+	return u.data.Delete(ctx, id, loggedInUserID)
 }

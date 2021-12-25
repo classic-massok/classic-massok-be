@@ -5,8 +5,8 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/classic-massok-be/api/graphql/graph"
-	"github.com/classic-massok-be/api/graphql/graph/generated"
+	"github.com/classic-massok/classic-massok-be/api/graphql/graph"
+	"github.com/classic-massok/classic-massok-be/api/graphql/graph/generated"
 	"github.com/labstack/echo/v4"
 )
 

@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/classic-massok-be/api/graphql"
-	"github.com/classic-massok-be/api/rest"
+	"github.com/classic-massok/classic-massok-be/api/graphql"
+	"github.com/classic-massok/classic-massok-be/api/rest"
 	"github.com/labstack/echo/v4"
 )
 
