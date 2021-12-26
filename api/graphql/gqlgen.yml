@@ -1,10 +1,10 @@
 # Where are all the schema files located? globs are supported eg  src/**/*.graphqls
 schema:
-  - graph/*.graphqls
+  - *.graphqls
 
 # Where should the generated server code go?
 exec:
-  filename: graph/generated/generated.go
+  filename: generated/generated.go
   package: generated
 
 # Uncomment to enable federation
@@ -14,14 +14,14 @@ exec:
 
 # Where should any generated models go?
 model:
-  filename: graph/models/models_gen.go
+  filename: models/models_gen.go
   package: models
 
-# Where should the resolver implementations go?
-resolver:
-  layout: follow-schema
-  dir: graph
-  package: graph
+# # Where should the resolver implementations go?
+# resolver:
+#   layout: follow-schema
+#   dir: graph
+#   package: graph
 
 # Optional: turn on use `gqlgen:"fieldName"` tags in your models
 # struct_tag: json
@@ -35,7 +35,7 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-  - "github.com/classic-massok-be/api/graphql/graph/models"
+  - "github.com/classic-massok/classic-massok-be/api/graphql/models"
 
 # This section declares type mapping between the GraphQL and go type systems
 #
@@ -43,6 +43,10 @@ autobind:
 # modelgen, the others will be allowed when binding to fields. Configure them to
 # your liking
 models:
+  Mutation:
+    fields:
+      login:
+        resolver: true
   ID:
     model:
       - github.com/99designs/gqlgen/graphql.ID
@@ -53,4 +57,4 @@ models:
       - github.com/99designs/gqlgen/graphql.Int32
   Time:
     model:
-      - github.com/classic-massok/classic-massok-be/api/graphql/graph/types.Time
+      - github.com/classic-massok/classic-massok-be/api/graphql/types.Time

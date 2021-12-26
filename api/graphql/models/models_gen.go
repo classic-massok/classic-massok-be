@@ -28,6 +28,11 @@ type DeleteUserOutput struct {
 	Success bool `json:"success"`
 }
 
+type LoginInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type UpdateUserInput struct {
 	ID        string     `json:"id"`
 	Email     *string    `json:"email"`

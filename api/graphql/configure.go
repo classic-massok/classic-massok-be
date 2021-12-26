@@ -5,8 +5,8 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/classic-massok/classic-massok-be/api/graphql/graph"
-	"github.com/classic-massok/classic-massok-be/api/graphql/graph/generated"
+	"github.com/classic-massok/classic-massok-be/api/graphql/generated"
+	"github.com/classic-massok/classic-massok-be/api/graphql/resolvers"
 	"github.com/labstack/echo/v4"
 )
 
@@ -38,7 +38,7 @@ func graphqlMain(c echo.Context) error {
 	// }
 
 	config := generated.Config{
-		Resolvers:  &graph.Resolver{},
+		Resolvers:  &resolvers.Resolver{},
 		Directives: generated.DirectiveRoot{},
 		Complexity: generated.ComplexityRoot{},
 	}
