@@ -147,7 +147,7 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 	return users, nil
 }
 
-func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, userEdit UserEdit) (*User, error) {
+func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit UserEdit) (*User, error) {
 	mongoUserEdit := mongo.UserEdit{
 		Email:     userEdit.Email,
 		FirstName: userEdit.FirstName,
@@ -164,11 +164,14 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, userEdit
 			return nil, err
 		}
 
-		newCusKey := random.String(15)
 		mongoUserEdit.Password = &hashedPassword
-		mongoUserEdit.CusKey = &newCusKey
 	} else {
 		mongoUserEdit.Password = nil
+	}
+
+	if userEdit.Password != nil || updateCusKey {
+		newCusKey := random.String(15)
+		mongoUserEdit.CusKey = &newCusKey
 	}
 
 	mongoUser, err := u.data.Edit(ctx, id, loggedInUserID, mongoUserEdit)

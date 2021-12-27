@@ -16,16 +16,6 @@ type GraphQL struct {
 }
 
 func (g *GraphQL) Configure(graphql *echo.Group) {
-	bindContext := func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ctx := context.WithValue(c.Request().Context(), struct{ Name string }{"echo"}, c)
-			c.SetRequest(c.Request().WithContext(ctx))
-			return next(c)
-		}
-	}
-
-	graphql.Use(bindContext)
-
 	graphql.GET("/hello-world", helloWorld)
 
 	// Main graphql endpoiint
@@ -75,6 +65,6 @@ type usersBiz interface {
 	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
 	Get(ctx context.Context, id string) (*business.User, error)
 	GetAll(ctx context.Context) ([]*business.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, userEdit business.UserEdit) (*business.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit business.UserEdit) (*business.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
 }

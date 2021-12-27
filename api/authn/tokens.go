@@ -91,6 +91,7 @@ func extractToken(r *http.Request) string {
 	if len(authHeaderContent) != 2 || authHeaderContent[0] != "Bearer" {
 		return ""
 	}
+
 	return authHeaderContent[1]
 }
 

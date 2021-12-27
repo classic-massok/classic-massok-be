@@ -28,7 +28,7 @@ type mutation struct{ *Resolver }
 type query struct{ *Resolver }
 
 func echoContextFromContext(ctx context.Context) (echo.Context, error) {
-	echoContext := ctx.Value(struct{ name string }{"echo"})
+	echoContext := ctx.Value("EchoContext")
 	if echoContext == nil {
 		err := fmt.Errorf("could not retrieve echo.Context")
 		return nil, err
@@ -47,6 +47,6 @@ type usersBiz interface {
 	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
 	Get(ctx context.Context, id string) (*business.User, error)
 	GetAll(ctx context.Context) ([]*business.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, userEdit business.UserEdit) (*business.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit business.UserEdit) (*business.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
 }

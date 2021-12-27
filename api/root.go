@@ -17,9 +17,10 @@ type Router struct {
 
 func (r *Router) SetRouter() http.Handler {
 	e := echo.New()
-	authnMW := &authn.AuthnMW{}
+	authnMW := r.getAuthMW()
 
 	e.Use(authnMW.ValidateToken)
+	e.Use(bindContext)
 
 	apiRouter := e.Group("/api")
 
@@ -44,11 +45,19 @@ func (r *Router) getGraphQL() *graphql.GraphQL {
 	}
 }
 
+func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := context.WithValue(c.Request().Context(), "EchoContext", c)
+		c.SetRequest(c.Request().WithContext(ctx))
+		return next(c)
+	}
+}
+
 type usersBiz interface {
 	Authn(ctx context.Context, email, password string) (string, string, error)
 	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
 	Get(ctx context.Context, id string) (*business.User, error)
 	GetAll(ctx context.Context) ([]*business.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, userEdit business.UserEdit) (*business.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, udpateCusKey bool, userEdit business.UserEdit) (*business.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
 }

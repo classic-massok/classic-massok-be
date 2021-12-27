@@ -50,7 +50,7 @@ input LoginInput {
   password: String!
 }
 
-type LoginOutput {
+type AuthOutput {
   accessToken: String!
   accessTokenExpiry: Int64!
   refreshToken: String!
@@ -63,7 +63,8 @@ type Query {
 }
 
 type Mutation {
-  login(input: LoginInput!): LoginOutput!
+  login(input: LoginInput!): AuthOutput!
+  refreshToken: AuthOutput!
   createUser(input: CreateUserInput!): CreateUserOutput!
   updateUser(input: UpdateUserInput!): User!
   deleteUser(input: DeleteUserInput!): DeleteUserOutput!

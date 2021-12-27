@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type AuthOutput struct {
+	AccessToken        string `json:"accessToken"`
+	AccessTokenExpiry  int64  `json:"accessTokenExpiry"`
+	RefreshToken       string `json:"refreshToken"`
+	RefreshTokenExpiry int64  `json:"refreshTokenExpiry"`
+}
+
 type CreateUserInput struct {
 	Email     string     `json:"email"`
 	Password  string     `json:"password"`
@@ -31,13 +38,6 @@ type DeleteUserOutput struct {
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-type LoginOutput struct {
-	AccessToken        string `json:"accessToken"`
-	AccessTokenExpiry  int64  `json:"accessTokenExpiry"`
-	RefreshToken       string `json:"refreshToken"`
-	RefreshTokenExpiry int64  `json:"refreshTokenExpiry"`
 }
 
 type UpdateUserInput struct {
