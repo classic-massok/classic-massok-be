@@ -44,6 +44,7 @@ type User struct {
 	cmmongo.ID `bson:",inline"`
 
 	// Required fields
+	CusKey    string `bson:"cusKey"`
 	Email     string `bson:"email"`
 	Password  []byte `bson:"password"` // hashed
 	FirstName string `bson:"firstName"`
@@ -58,6 +59,7 @@ type User struct {
 }
 
 type UserEdit struct {
+	CusKey    *string
 	Email     *string
 	Password  *[]byte
 	FirstName *string
@@ -108,6 +110,15 @@ func (u *usersData) New(ctx context.Context, loggedInUserID string, user User) (
 func (u *usersData) Get(ctx context.Context, id string) (*User, error) {
 	var user User
 	if err := u.coll.Get(ctx, id, &user); err != nil {
+		return nil, fmt.Errorf("error getting user: %w", err)
+	}
+
+	return &user, nil
+}
+
+func (u *usersData) GetByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	if err := u.coll.GetByFilter(ctx, bson.M{"email": email}, &user); err != nil {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
 

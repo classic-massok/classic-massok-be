@@ -52,6 +52,13 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
+	LoginOutput struct {
+		AccessToken        func(childComplexity int) int
+		AccessTokenExpiry  func(childComplexity int) int
+		RefreshToken       func(childComplexity int) int
+		RefreshTokenExpiry func(childComplexity int) int
+	}
+
 	Mutation struct {
 		CreateUser func(childComplexity int, input models.CreateUserInput) int
 		DeleteUser func(childComplexity int, input models.DeleteUserInput) int
@@ -80,7 +87,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	Login(ctx context.Context, input models.LoginInput) (*models.User, error)
+	Login(ctx context.Context, input models.LoginInput) (*models.LoginOutput, error)
 	CreateUser(ctx context.Context, input models.CreateUserInput) (*models.CreateUserOutput, error)
 	UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error)
 	DeleteUser(ctx context.Context, input models.DeleteUserInput) (*models.DeleteUserOutput, error)
@@ -118,6 +125,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DeleteUserOutput.Success(childComplexity), true
+
+	case "LoginOutput.accessToken":
+		if e.complexity.LoginOutput.AccessToken == nil {
+			break
+		}
+
+		return e.complexity.LoginOutput.AccessToken(childComplexity), true
+
+	case "LoginOutput.accessTokenExpiry":
+		if e.complexity.LoginOutput.AccessTokenExpiry == nil {
+			break
+		}
+
+		return e.complexity.LoginOutput.AccessTokenExpiry(childComplexity), true
+
+	case "LoginOutput.refreshToken":
+		if e.complexity.LoginOutput.RefreshToken == nil {
+			break
+		}
+
+		return e.complexity.LoginOutput.RefreshToken(childComplexity), true
+
+	case "LoginOutput.refreshTokenExpiry":
+		if e.complexity.LoginOutput.RefreshTokenExpiry == nil {
+			break
+		}
+
+		return e.complexity.LoginOutput.RefreshTokenExpiry(childComplexity), true
 
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
@@ -327,7 +362,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/schema.graphqls", Input: `type User {
+	{Name: "schema.graphqls", Input: `type User {
   id: ID!
   email: String!
   firstName: String!
@@ -379,19 +414,27 @@ input LoginInput {
   password: String!
 }
 
+type LoginOutput {
+  accessToken: String!
+  accessTokenExpiry: Int64!
+  refreshToken: String!
+  refreshTokenExpiry: Int64!
+}
+
 type Query {
   user(id: ID!): User
   users: [User!]
 }
 
 type Mutation {
-  login(input: LoginInput!): User!
+  login(input: LoginInput!): LoginOutput!
   createUser(input: CreateUserInput!): CreateUserOutput!
   updateUser(input: UpdateUserInput!): User!
   deleteUser(input: DeleteUserInput!): DeleteUserOutput!
 }
 
-scalar Time`, BuiltIn: false},
+scalar Time
+scalar Int64`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -405,7 +448,7 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 	var arg0 models.CreateUserInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNCreateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐCreateUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐCreateUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -420,7 +463,7 @@ func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, 
 	var arg0 models.DeleteUserInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNDeleteUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐDeleteUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNDeleteUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐDeleteUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +478,7 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 	var arg0 models.LoginInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐLoginInput(ctx, tmp)
+		arg0, err = ec.unmarshalNLoginInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐLoginInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -450,7 +493,7 @@ func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, 
 	var arg0 models.UpdateUserInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUpdateUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUpdateUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -597,6 +640,146 @@ func (ec *executionContext) _DeleteUserOutput_success(ctx context.Context, field
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _LoginOutput_accessToken(ctx context.Context, field graphql.CollectedField, obj *models.LoginOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LoginOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccessToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LoginOutput_accessTokenExpiry(ctx context.Context, field graphql.CollectedField, obj *models.LoginOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LoginOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccessTokenExpiry, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LoginOutput_refreshToken(ctx context.Context, field graphql.CollectedField, obj *models.LoginOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LoginOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RefreshToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LoginOutput_refreshTokenExpiry(ctx context.Context, field graphql.CollectedField, obj *models.LoginOutput) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LoginOutput",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RefreshTokenExpiry, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNInt642int64(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -634,9 +817,9 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*models.User)
+	res := resTmp.(*models.LoginOutput)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNLoginOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐLoginOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -678,7 +861,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	}
 	res := resTmp.(*models.CreateUserOutput)
 	fc.Result = res
-	return ec.marshalNCreateUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐCreateUserOutput(ctx, field.Selections, res)
+	return ec.marshalNCreateUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐCreateUserOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -720,7 +903,7 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 	}
 	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -762,7 +945,7 @@ func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field grap
 	}
 	res := resTmp.(*models.DeleteUserOutput)
 	fc.Result = res
-	return ec.marshalNDeleteUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐDeleteUserOutput(ctx, field.Selections, res)
+	return ec.marshalNDeleteUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐDeleteUserOutput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -801,7 +984,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -833,7 +1016,7 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.([]*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚕᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚕᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2671,6 +2854,48 @@ func (ec *executionContext) _DeleteUserOutput(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var loginOutputImplementors = []string{"LoginOutput"}
+
+func (ec *executionContext) _LoginOutput(ctx context.Context, sel ast.SelectionSet, obj *models.LoginOutput) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, loginOutputImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LoginOutput")
+		case "accessToken":
+			out.Values[i] = ec._LoginOutput_accessToken(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "accessTokenExpiry":
+			out.Values[i] = ec._LoginOutput_accessTokenExpiry(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "refreshToken":
+			out.Values[i] = ec._LoginOutput_refreshToken(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "refreshTokenExpiry":
+			out.Values[i] = ec._LoginOutput_refreshTokenExpiry(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3102,16 +3327,16 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNCreateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐCreateUserInput(ctx context.Context, v interface{}) (models.CreateUserInput, error) {
+func (ec *executionContext) unmarshalNCreateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐCreateUserInput(ctx context.Context, v interface{}) (models.CreateUserInput, error) {
 	res, err := ec.unmarshalInputCreateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCreateUserOutput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐCreateUserOutput(ctx context.Context, sel ast.SelectionSet, v models.CreateUserOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNCreateUserOutput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐCreateUserOutput(ctx context.Context, sel ast.SelectionSet, v models.CreateUserOutput) graphql.Marshaler {
 	return ec._CreateUserOutput(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCreateUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐCreateUserOutput(ctx context.Context, sel ast.SelectionSet, v *models.CreateUserOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNCreateUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐCreateUserOutput(ctx context.Context, sel ast.SelectionSet, v *models.CreateUserOutput) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3121,16 +3346,16 @@ func (ec *executionContext) marshalNCreateUserOutput2ᚖgithubᚗcomᚋclassic�
 	return ec._CreateUserOutput(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐDeleteUserInput(ctx context.Context, v interface{}) (models.DeleteUserInput, error) {
+func (ec *executionContext) unmarshalNDeleteUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐDeleteUserInput(ctx context.Context, v interface{}) (models.DeleteUserInput, error) {
 	res, err := ec.unmarshalInputDeleteUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNDeleteUserOutput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐDeleteUserOutput(ctx context.Context, sel ast.SelectionSet, v models.DeleteUserOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNDeleteUserOutput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐDeleteUserOutput(ctx context.Context, sel ast.SelectionSet, v models.DeleteUserOutput) graphql.Marshaler {
 	return ec._DeleteUserOutput(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDeleteUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐDeleteUserOutput(ctx context.Context, sel ast.SelectionSet, v *models.DeleteUserOutput) graphql.Marshaler {
+func (ec *executionContext) marshalNDeleteUserOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐDeleteUserOutput(ctx context.Context, sel ast.SelectionSet, v *models.DeleteUserOutput) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3155,9 +3380,38 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐLoginInput(ctx context.Context, v interface{}) (models.LoginInput, error) {
+func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v interface{}) (int64, error) {
+	res, err := graphql.UnmarshalInt64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	res := graphql.MarshalInt64(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐLoginInput(ctx context.Context, v interface{}) (models.LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNLoginOutput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐLoginOutput(ctx context.Context, sel ast.SelectionSet, v models.LoginOutput) graphql.Marshaler {
+	return ec._LoginOutput(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLoginOutput2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐLoginOutput(ctx context.Context, sel ast.SelectionSet, v *models.LoginOutput) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._LoginOutput(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -3190,16 +3444,16 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUpdateUserInput(ctx context.Context, v interface{}) (models.UpdateUserInput, error) {
+func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUpdateUserInput(ctx context.Context, v interface{}) (models.UpdateUserInput, error) {
 	res, err := ec.unmarshalInputUpdateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3529,7 +3783,7 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return types.MarshalTime(*v)
 }
 
-func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -3556,7 +3810,7 @@ func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋclassicᚑmassok�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3576,7 +3830,7 @@ func (ec *executionContext) marshalOUser2ᚕᚖgithubᚗcomᚋclassicᚑmassok�
 	return ret
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋgraphᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

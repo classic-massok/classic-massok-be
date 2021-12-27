@@ -33,6 +33,13 @@ type LoginInput struct {
 	Password string `json:"password"`
 }
 
+type LoginOutput struct {
+	AccessToken        string `json:"accessToken"`
+	AccessTokenExpiry  int64  `json:"accessTokenExpiry"`
+	RefreshToken       string `json:"refreshToken"`
+	RefreshTokenExpiry int64  `json:"refreshTokenExpiry"`
+}
+
 type UpdateUserInput struct {
 	ID        string     `json:"id"`
 	Email     *string    `json:"email"`

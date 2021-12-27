@@ -7,17 +7,18 @@ import (
 
 	"github.com/classic-massok/classic-massok-be/data/mongo"
 	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
+	"github.com/labstack/gommon/random"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // NewUsersBiz is the constructure for the users business layers
-func NewUsersBiz() (*usersBiz, error) {
+func NewUsersBiz() *usersBiz {
 	data, err := mongo.NewUsersData(cmmongo.Database)
 	if err != nil {
-		return nil, fmt.Errorf("error constructing users biz: %w", err)
+		panic(fmt.Sprintf("error constructing users biz: %v", err))
 	}
 
-	return &usersBiz{data}, nil
+	return &usersBiz{data}
 }
 
 // usersBiz is the business layer for interacting with user data
@@ -29,6 +30,7 @@ type usersBiz struct {
 type usersData interface {
 	New(ctx context.Context, loggedInUserID string, user mongo.User) (string, error)
 	Get(ctx context.Context, id string) (*mongo.User, error)
+	GetByEmail(ctx context.Context, email string) (*mongo.User, error)
 	GetAll(ctx context.Context) ([]*mongo.User, error)
 	Edit(ctx context.Context, id, loggedInUserID string, edit mongo.UserEdit) (*mongo.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
@@ -36,6 +38,7 @@ type usersData interface {
 
 type User struct {
 	id        string
+	cusKey    string
 	Email     string
 	FirstName string
 	LastName  string
@@ -49,6 +52,10 @@ func (u *User) GetID() string {
 	return u.id
 }
 
+func (u *User) GetCusKey() string {
+	return u.cusKey
+}
+
 type UserEdit struct {
 	Email     *string
 	Password  *string
@@ -59,6 +66,15 @@ type UserEdit struct {
 	Birthday  *time.Time
 }
 
+func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, string, error) {
+	mongoUser, err := u.data.GetByEmail(ctx, email)
+	if err != nil {
+		return "", "", err
+	}
+
+	return mongoUser.GetID(), mongoUser.CusKey, bcrypt.CompareHashAndPassword(mongoUser.Password, []byte(password))
+}
+
 func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user User) (string, error) {
 	passwordBytes := []byte(password)
 	hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
@@ -67,6 +83,7 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 	}
 
 	return u.data.New(ctx, loggedInUserID, mongo.User{
+		CusKey:    random.String(15),
 		Email:     user.Email,
 		Password:  hashedPassword,
 		FirstName: user.FirstName,
@@ -85,6 +102,7 @@ func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
 
 	return &User{
 		mongoUser.GetID(),
+		mongoUser.CusKey,
 		mongoUser.Email,
 		mongoUser.FirstName,
 		mongoUser.LastName,
@@ -110,6 +128,7 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 	for i, mongoUser := range mongoUsers {
 		users[i] = &User{
 			mongoUser.GetID(),
+			mongoUser.CusKey,
 			mongoUser.Email,
 			mongoUser.FirstName,
 			mongoUser.LastName,
@@ -129,6 +148,15 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 }
 
 func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, userEdit UserEdit) (*User, error) {
+	mongoUserEdit := mongo.UserEdit{
+		Email:     userEdit.Email,
+		FirstName: userEdit.FirstName,
+		LastName:  userEdit.LastName,
+		Phone:     userEdit.Phone,
+		CanSMS:    userEdit.CanSMS,
+		Birthday:  userEdit.Birthday,
+	}
+
 	passwordBytes := []byte{}
 	if userEdit.Password != nil {
 		hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
@@ -136,26 +164,21 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, userEdit
 			return nil, err
 		}
 
-		passwordBytes = hashedPassword
+		newCusKey := random.String(15)
+		mongoUserEdit.Password = &hashedPassword
+		mongoUserEdit.CusKey = &newCusKey
 	} else {
-		passwordBytes = nil
+		mongoUserEdit.Password = nil
 	}
 
-	mongoUser, err := u.data.Edit(ctx, id, loggedInUserID, mongo.UserEdit{
-		Email:     userEdit.Email,
-		Password:  &passwordBytes,
-		FirstName: userEdit.FirstName,
-		LastName:  userEdit.LastName,
-		Phone:     userEdit.Phone,
-		CanSMS:    userEdit.CanSMS,
-		Birthday:  userEdit.Birthday,
-	})
+	mongoUser, err := u.data.Edit(ctx, id, loggedInUserID, mongoUserEdit)
 	if err != nil {
 		return nil, err
 	}
 
 	return &User{
 		mongoUser.GetID(),
+		mongoUser.CusKey,
 		mongoUser.Email,
 		mongoUser.FirstName,
 		mongoUser.LastName,

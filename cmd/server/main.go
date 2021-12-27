@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/classic-massok/classic-massok-be/api"
 	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -38,7 +37,7 @@ func main() {
 			cmmongo.Database = client.Database("classic-massok")
 
 			go func() {
-				err := serveHTTP()
+				err := serveHTTP(getEchoRouter())
 				errChan <- err
 			}()
 
@@ -56,8 +55,7 @@ func main() {
 	}
 }
 
-func serveHTTP() error {
-	echoRouter := api.GetRouter()
+func serveHTTP(echoRouter http.Handler) error {
 	handler := createHandler(echoRouter.ServeHTTP)
 	port := ":8080"
 

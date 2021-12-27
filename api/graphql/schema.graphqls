@@ -50,16 +50,24 @@ input LoginInput {
   password: String!
 }
 
+type LoginOutput {
+  accessToken: String!
+  accessTokenExpiry: Int64!
+  refreshToken: String!
+  refreshTokenExpiry: Int64!
+}
+
 type Query {
   user(id: ID!): User
   users: [User!]
 }
 
 type Mutation {
-  login(input: LoginInput!): User!
+  login(input: LoginInput!): LoginOutput!
   createUser(input: CreateUserInput!): CreateUserOutput!
   updateUser(input: UpdateUserInput!): User!
   deleteUser(input: DeleteUserInput!): DeleteUserOutput!
 }
 
 scalar Time
+scalar Int64

@@ -22,7 +22,8 @@ type Collection struct {
 // Insert wraps the mongo driver `Insert` method
 // 	- calls the creator methods to set id and accounting fields
 func (c *Collection) Insert(ctx context.Context, loggedInUserID string, doc Creator, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
-	doc.SetOID(getLoggedInUserOID(loggedInUserID))
+	doc.SetOID(primitive.NewObjectID())
+	doc.SetAccounting(time.Now(), getLoggedInUserOID(loggedInUserID))
 
 	result, err := c.coll.InsertOne(ctx, doc, opts...)
 	if err != nil {
@@ -43,6 +44,13 @@ func (c *Collection) Get(ctx context.Context, id string, toFill Reader, opts ...
 
 	defer toFill.SetID()
 	return c.coll.FindOne(ctx, bson.M{idField: oid}, opts...).Decode(toFill)
+}
+
+// GetByFilter wraps the mongo driver `FindOne` method
+//	- fills the provided interfaace with the returned result
+func (c *Collection) GetByFilter(ctx context.Context, filter bson.M, toFill Reader, opts ...*options.FindOneOptions) error {
+	defer toFill.SetID()
+	return c.coll.FindOne(ctx, filter, opts...).Decode(toFill)
 }
 
 // GetAll wraps the mongo driver `Find` method

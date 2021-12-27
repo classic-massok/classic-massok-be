@@ -7,10 +7,15 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/classic-massok/classic-massok-be/api/graphql/generated"
 	"github.com/classic-massok/classic-massok-be/api/graphql/resolvers"
+	"github.com/classic-massok/classic-massok-be/business"
 	"github.com/labstack/echo/v4"
 )
 
-func Configure(graphql *echo.Group) {
+type GraphQL struct {
+	UsersBiz usersBiz
+}
+
+func (g *GraphQL) Configure(graphql *echo.Group) {
 	bindContext := func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			ctx := context.WithValue(c.Request().Context(), struct{ Name string }{"echo"}, c)
@@ -21,13 +26,19 @@ func Configure(graphql *echo.Group) {
 
 	graphql.Use(bindContext)
 
+	graphql.GET("/hello-world", helloWorld)
+
 	// Main graphql endpoiint
-	graphql.POST("", graphqlMain)
+	graphql.POST("", g.graphqlMain)
 	// Playground graphql endpoint
 	graphql.GET("", graphqlPlayground)
 }
 
-func graphqlMain(c echo.Context) error {
+func helloWorld(c echo.Context) error {
+	return c.JSON(200, "Hello, World!")
+}
+
+func (g *GraphQL) graphqlMain(c echo.Context) error {
 	// acl := func(ctx context.Context, obj interface{}, next graph.Resolver, permission string) (res interface{}, err error) {
 	// 	// Need to make a check permissions that uses the obj above to get the resource and it's perms
 	// 	if err := authz.CheckPermissions(c, permission); err != nil {
@@ -38,7 +49,9 @@ func graphqlMain(c echo.Context) error {
 	// }
 
 	config := generated.Config{
-		Resolvers:  &resolvers.Resolver{},
+		Resolvers: &resolvers.Resolver{
+			g.UsersBiz,
+		},
 		Directives: generated.DirectiveRoot{},
 		Complexity: generated.ComplexityRoot{},
 	}
@@ -55,4 +68,13 @@ func graphqlPlayground(c echo.Context) error {
 	srv := playground.Handler("GraphQL playground", "/api/graphql")
 	srv.ServeHTTP(c.Response(), c.Request())
 	return nil
+}
+
+type usersBiz interface {
+	Authn(ctx context.Context, email, password string) (string, string, error)
+	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
+	Get(ctx context.Context, id string) (*business.User, error)
+	GetAll(ctx context.Context) ([]*business.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, userEdit business.UserEdit) (*business.User, error)
+	Delete(ctx context.Context, id, loggedInUserID string) error
 }
