@@ -18,6 +18,7 @@ type CreateUserInput struct {
 	Password  string     `json:"password"`
 	FirstName string     `json:"firstName"`
 	LastName  string     `json:"lastName"`
+	Roles     []string   `json:"roles"`
 	Phone     *string    `json:"phone"`
 	CanSms    *bool      `json:"canSMS"`
 	Birthday  *time.Time `json:"birthday"`
@@ -46,6 +47,7 @@ type UpdateUserInput struct {
 	Password  *string    `json:"password"`
 	FirstName *string    `json:"firstName"`
 	LastName  *string    `json:"lastName"`
+	Roles     []string   `json:"roles"`
 	Phone     *string    `json:"phone"`
 	CanSms    *bool      `json:"canSMS"`
 	Birthday  *time.Time `json:"birthday"`
@@ -56,6 +58,7 @@ type User struct {
 	Email     string     `json:"email"`
 	FirstName string     `json:"firstName"`
 	LastName  string     `json:"lastName"`
+	Roles     []string   `json:"roles"`
 	Phone     *string    `json:"phone"`
 	CanSms    *bool      `json:"canSMS"`
 	Birthday  *time.Time `json:"birthday"`

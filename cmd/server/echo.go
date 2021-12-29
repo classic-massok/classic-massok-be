@@ -9,6 +9,7 @@ import (
 
 func getEchoRouter() http.Handler {
 	router := &api.Router{
+		business.NewACLBiz(true), // TODO: make this configureable
 		business.NewUsersBiz(),
 	}
 

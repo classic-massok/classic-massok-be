@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/classic-massok/classic-massok-be/api/authn"
+	"github.com/classic-massok/classic-massok-be/api/authz"
 	"github.com/classic-massok/classic-massok-be/api/graphql"
 	"github.com/classic-massok/classic-massok-be/api/rest"
 	"github.com/classic-massok/classic-massok-be/business"
@@ -12,12 +14,13 @@ import (
 )
 
 type Router struct {
+	ACLBiz   aclBiz
 	UsersBiz usersBiz
 }
 
 func (r *Router) SetRouter() http.Handler {
 	e := echo.New()
-	authnMW := r.getAuthMW()
+	authnMW := r.getAuthnMW()
 
 	e.Use(authnMW.ValidateToken)
 	e.Use(bindContext)
@@ -33,9 +36,18 @@ func (r *Router) SetRouter() http.Handler {
 	return e
 }
 
-func (r *Router) getAuthMW() *authn.AuthnMW {
+func (r *Router) getAuthnMW() *authn.AuthnMW {
 	return &authn.AuthnMW{
 		r.UsersBiz,
+	}
+}
+
+func (r *Router) getAuthzMW() *authz.AuthzMW {
+	return &authz.AuthzMW{
+		r.ACLBiz,
+		&business.ResourceRepo{
+			r.UsersBiz,
+		},
 	}
 }
 
@@ -51,6 +63,25 @@ func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
 		c.SetRequest(c.Request().WithContext(ctx))
 		return next(c)
 	}
+}
+
+func EchoContextFromContext(ctx context.Context) (echo.Context, error) {
+	echoContext := ctx.Value("EchoContext")
+	if echoContext == nil {
+		err := fmt.Errorf("could not retrieve echo.Context")
+		return nil, err
+	}
+
+	ec, ok := echoContext.(echo.Context)
+	if !ok {
+		err := fmt.Errorf("echo.Context has wrong type")
+		return nil, err
+	}
+	return ec, nil
+}
+
+type aclBiz interface {
+	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}) (bool, error)
 }
 
 type usersBiz interface {

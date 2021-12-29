@@ -3,12 +3,25 @@ package business
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/classic-massok/classic-massok-be/data/mongo"
 	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
 	"github.com/labstack/gommon/random"
 	"golang.org/x/crypto/bcrypt"
+)
+
+// Application Scope types
+const (
+	AppScopeGlobal ApplicationScope = "global"
+	AppScopeBlog   ApplicationScope = "blog"
+)
+
+// User Role types (ADD PERM DEFS)
+const (
+	RoleAdmin Role = "admin"
+	RoleUser  Role = "user"
 )
 
 // NewUsersBiz is the constructure for the users business layers
@@ -42,10 +55,11 @@ type User struct {
 	Email     string
 	FirstName string
 	LastName  string
+	Roles     // TODO: figure out if this has the potential to be nil
 	Phone     *string
 	CanSMS    *bool
 	Birthday  *time.Time
-	Accounting
+	accounting
 }
 
 func (u *User) GetID() string {
@@ -61,9 +75,10 @@ type UserEdit struct {
 	Password  *string
 	FirstName *string
 	LastName  *string
-	Phone     *string
-	CanSMS    *bool
-	Birthday  *time.Time
+	Roles
+	Phone    *string
+	CanSMS   *bool
+	Birthday *time.Time
 }
 
 func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, string, error) {
@@ -76,6 +91,10 @@ func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, s
 }
 
 func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user User) (string, error) {
+	if !user.Roles.Validate() {
+		return "", fmt.Errorf("invalid user roles")
+	}
+
 	passwordBytes := []byte(password)
 	hashedPassword, err := bcrypt.GenerateFromPassword(passwordBytes, bcrypt.DefaultCost)
 	if err != nil {
@@ -94,6 +113,10 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 	})
 }
 
+type userGetter interface {
+	Get(ctx context.Context, id string) (*User, error)
+}
+
 func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
 	mongoUser, err := u.data.Get(ctx, id)
 	if err != nil {
@@ -106,10 +129,11 @@ func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
 		mongoUser.Email,
 		mongoUser.FirstName,
 		mongoUser.LastName,
+		mongoUser.Roles,
 		mongoUser.Phone,
 		mongoUser.CanSMS,
 		mongoUser.Birthday,
-		Accounting{
+		accounting{
 			mongoUser.CreatedAt,
 			mongoUser.UpdatedAt,
 			mongoUser.CreatedBy,
@@ -132,10 +156,11 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 			mongoUser.Email,
 			mongoUser.FirstName,
 			mongoUser.LastName,
+			mongoUser.Roles,
 			mongoUser.Phone,
 			mongoUser.CanSMS,
 			mongoUser.Birthday,
-			Accounting{
+			accounting{
 				mongoUser.CreatedAt,
 				mongoUser.UpdatedAt,
 				mongoUser.CreatedBy,
@@ -174,6 +199,14 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 		mongoUserEdit.CusKey = &newCusKey
 	}
 
+	if userEdit.Roles != nil {
+		if !userEdit.Roles.Validate() {
+			return nil, fmt.Errorf("invalid user roles")
+		}
+
+		mongoUserEdit.Roles = (*[]string)(&userEdit.Roles)
+	}
+
 	mongoUser, err := u.data.Edit(ctx, id, loggedInUserID, mongoUserEdit)
 	if err != nil {
 		return nil, err
@@ -185,10 +218,11 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 		mongoUser.Email,
 		mongoUser.FirstName,
 		mongoUser.LastName,
+		mongoUser.Roles,
 		mongoUser.Phone,
 		mongoUser.CanSMS,
 		mongoUser.Birthday,
-		Accounting{
+		accounting{
 			mongoUser.CreatedAt,
 			mongoUser.UpdatedAt,
 			mongoUser.CreatedBy,
@@ -199,4 +233,105 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 
 func (u *usersBiz) Delete(ctx context.Context, id, loggedInUserID string) error {
 	return u.data.Delete(ctx, id, loggedInUserID)
+}
+
+type Roles []string
+
+func (r Roles) SetRole(appScope ApplicationScope, role Role) {
+	if r == nil {
+		r = Roles{}
+	}
+
+	prefixedRole := fmt.Sprintf("%s.%s", appScope, role)
+	r = append(r, prefixedRole)
+}
+
+func (r Roles) HasRole(appScope ApplicationScope, role Role) bool {
+	if r == nil {
+		return false
+	}
+
+	prefixedRole := fmt.Sprintf("%s.%s", appScope, role)
+	for _, curRole := range r {
+		if curRole == prefixedRole {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (r Roles) RemoveRole(appScope ApplicationScope, role Role) bool {
+	if r == nil {
+		return false
+	}
+
+	prefixedRole := fmt.Sprintf("%s.%s", appScope, role)
+	for i, curRole := range r {
+		if curRole == prefixedRole {
+			r = append(r[:i], r[i+1:]...)
+			return true
+		}
+	}
+
+	return false
+}
+
+func (r Roles) Validate() bool {
+	if r == nil {
+		return true
+	}
+
+	for _, curRole := range r {
+		rs := strings.Split(curRole, ".")
+		if len(rs) != 2 {
+			return false
+		}
+
+		if !ApplicationScope(rs[0]).Validate() {
+			return false
+		}
+
+		if !Role(rs[1]).Validate() {
+			return false
+		}
+	}
+
+	return true
+}
+
+type ApplicationScope string
+
+func (a ApplicationScope) String() string {
+	return string(a)
+}
+
+func (a ApplicationScope) Validate() bool {
+	switch a {
+	case AppScopeGlobal:
+	case AppScopeBlog:
+	default:
+		// log what was input here
+		return false
+	}
+
+	return true
+}
+
+type Role string
+
+func (r Role) String() string {
+	return string(r)
+}
+
+func (r Role) Validate() bool {
+	switch r {
+	case RoleAdmin:
+	case RoleUser:
+	default:
+		// log what was input here
+		return false
+	}
+
+	return true
 }

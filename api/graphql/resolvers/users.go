@@ -2,9 +2,7 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/classic-massok/classic-massok-be/api/authn"
 	"github.com/classic-massok/classic-massok-be/api/graphql/models"
 	"github.com/classic-massok/classic-massok-be/business"
 )
@@ -14,6 +12,7 @@ func (m *mutation) CreateUser(ctx context.Context, input models.CreateUserInput)
 		Email:     input.Email,
 		FirstName: input.FirstName,
 		LastName:  input.LastName,
+		Roles:     input.Roles,
 		Phone:     input.Phone,
 		CanSMS:    input.CanSms,
 		Birthday:  input.Birthday,
@@ -38,6 +37,7 @@ func (q *query) User(ctx context.Context, id string) (*models.User, error) {
 		bizUser.Email,
 		bizUser.FirstName,
 		bizUser.LastName,
+		bizUser.Roles,
 		bizUser.Phone,
 		bizUser.CanSMS,
 		bizUser.Birthday,
@@ -49,15 +49,6 @@ func (q *query) User(ctx context.Context, id string) (*models.User, error) {
 }
 
 func (q *query) Users(ctx context.Context) ([]*models.User, error) {
-	c, err := echoContextFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.Get(authn.UserIDKey) == nil {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
 	bizUsers, err := q.UsersBiz.GetAll(ctx)
 	if err != nil {
 		return nil, err
@@ -70,6 +61,7 @@ func (q *query) Users(ctx context.Context) ([]*models.User, error) {
 			bizUser.Email,
 			bizUser.FirstName,
 			bizUser.LastName,
+			bizUser.Roles,
 			bizUser.Phone,
 			bizUser.CanSMS,
 			bizUser.Birthday,
@@ -102,6 +94,7 @@ func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput)
 		bizUser.Email,
 		bizUser.FirstName,
 		bizUser.LastName,
+		bizUser.Roles,
 		bizUser.Phone,
 		bizUser.CanSMS,
 		bizUser.Birthday,

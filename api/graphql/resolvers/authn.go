@@ -25,6 +25,13 @@ func (m *mutation) Login(ctx context.Context, input models.LoginInput) (*models.
 		return nil, fmt.Errorf("error generating access token: %w", err)
 	}
 
+	c, err := echoContextFromContext(ctx)
+	if err != nil {
+		// log error here
+	} else {
+		c.Set(authn.UserIDKey, userID)
+	}
+
 	return &models.AuthOutput{
 		accessToken, accessTokenExpiry,
 		refreshToken, refreshTokenExpiry,
@@ -37,7 +44,7 @@ func (m *mutation) RefreshToken(ctx context.Context) (*models.AuthOutput, error)
 		return nil, fmt.Errorf("error generating refresh token: %w", err)
 	}
 
-	userID := c.Get(authn.UserIDKey).(string)
+	userID := c.Get(authn.UserIDKey).(string) // TODO: is this safe?
 
 	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
 	if err != nil {

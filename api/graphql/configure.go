@@ -16,16 +16,10 @@ type GraphQL struct {
 }
 
 func (g *GraphQL) Configure(graphql *echo.Group) {
-	graphql.GET("/hello-world", helloWorld)
-
-	// Main graphql endpoiint
+	// Main graphql endpoint
 	graphql.POST("", g.graphqlMain)
 	// Playground graphql endpoint
 	graphql.GET("", graphqlPlayground)
-}
-
-func helloWorld(c echo.Context) error {
-	return c.JSON(200, "Hello, World!")
 }
 
 func (g *GraphQL) graphqlMain(c echo.Context) error {

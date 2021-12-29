@@ -51,6 +51,7 @@ type User struct {
 	LastName  string `bson:"lastName"`
 
 	// Optional fields
+	Roles    []string   `bson:"roles"`
 	Phone    *string    `bson:"phone"`
 	CanSMS   *bool      `bson:"canSMS"`
 	Birthday *time.Time `bson:"birthday"`
@@ -64,6 +65,7 @@ type UserEdit struct {
 	Password  *[]byte
 	FirstName *string
 	LastName  *string
+	Roles     *[]string
 	Phone     *string
 	CanSMS    *bool
 	Birthday  *time.Time
@@ -71,6 +73,10 @@ type UserEdit struct {
 
 func (ue *UserEdit) GetUpdate() bson.M {
 	update := bson.M{}
+	if ue.CusKey != nil {
+		update["cusKey"] = *ue.CusKey
+	}
+
 	if ue.Email != nil {
 		update["email"] = *ue.Email
 	}
@@ -81,6 +87,10 @@ func (ue *UserEdit) GetUpdate() bson.M {
 
 	if ue.LastName != nil {
 		update["lastName"] = *ue.LastName
+	}
+
+	if ue.Roles != nil {
+		update["roles"] = *ue.Roles
 	}
 
 	if ue.Phone != nil {

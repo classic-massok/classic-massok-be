@@ -1,10 +1,12 @@
 package business
 
-import "time"
+import (
+	"time"
+)
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
-type Accounting struct {
+type accounting struct {
 	// Unix timestamp of Entry creation time
 	createdAt time.Time
 	// Unix timestamp of last Entry update
@@ -15,18 +17,18 @@ type Accounting struct {
 	updatedBy string
 }
 
-func (a *Accounting) GetCreatedAt() time.Time {
+func (a *accounting) GetCreatedAt() time.Time {
 	return a.createdAt
 }
 
-func (a *Accounting) GetUpdatedAt() time.Time {
+func (a *accounting) GetUpdatedAt() time.Time {
 	return a.updatedAt
 }
 
-func (a *Accounting) GetCreatedBy() string {
+func (a *accounting) GetCreatedBy() string {
 	return a.createdBy
 }
 
-func (a *Accounting) GetUpdatedBy() string {
+func (a *accounting) GetUpdatedBy() string {
 	return a.updatedBy
 }

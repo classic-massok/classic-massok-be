@@ -10,7 +10,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const UserIDKey = "userID"
+const (
+	UserIDKey = "userID"
+	RolesKey  = "roles"
+)
 
 type AuthnMW struct {
 	UsersBiz userGetter
@@ -37,12 +40,14 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 			// return fmt.Errorf("invalid token: authentication failed")
 		}
 
-		if _, err := a.UsersBiz.Get(c.Request().Context(), claims.UserID); err != nil {
+		user, err := a.UsersBiz.Get(c.Request().Context(), claims.UserID)
+		if err != nil {
 			return next(c)
 			// return fmt.Errorf("invalid token: authentication failed")
 		}
 
-		c.Set(UserIDKey, claims.UserID)
+		c.Set(UserIDKey, user.GetID())
+		c.Set(RolesKey, user.Roles)
 		return next(c)
 	}
 }
@@ -74,6 +79,7 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 	}
 
 	c.Set(UserIDKey, claims.UserID)
+	c.Set(RolesKey, user.Roles)
 	return next(c)
 }
 

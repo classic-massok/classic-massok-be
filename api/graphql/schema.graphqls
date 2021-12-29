@@ -3,6 +3,7 @@ type User {
   email: String!
   firstName: String!
   lastName: String!
+  roles: [String!]
   phone: String
   canSMS: Boolean
   birthday: Time
@@ -17,6 +18,7 @@ input CreateUserInput {
   password: String!
   firstName: String!
   lastName: String!
+  roles: [String!]
   phone: String
   canSMS: Boolean
   birthday: Time
@@ -32,6 +34,7 @@ input UpdateUserInput {
   password: String
   firstName: String
   lastName: String
+  roles: [String!]
   phone: String
   canSMS: Boolean
   birthday: Time
