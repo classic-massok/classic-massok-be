@@ -8,20 +8,9 @@ import (
 
 	"github.com/classic-massok/classic-massok-be/data/mongo"
 	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/gommon/random"
 	"golang.org/x/crypto/bcrypt"
-)
-
-// Application Scope types
-const (
-	AppScopeGlobal ApplicationScope = "global"
-	AppScopeBlog   ApplicationScope = "blog"
-)
-
-// User Role types (ADD PERM DEFS)
-const (
-	RoleAdmin Role = "admin"
-	RoleUser  Role = "user"
 )
 
 // NewUsersBiz is the constructure for the users business layers
@@ -37,48 +26,6 @@ func NewUsersBiz() *usersBiz {
 // usersBiz is the business layer for interacting with user data
 type usersBiz struct {
 	data usersData
-}
-
-//counterfeiter:generate . usersData
-type usersData interface {
-	New(ctx context.Context, loggedInUserID string, user mongo.User) (string, error)
-	Get(ctx context.Context, id string) (*mongo.User, error)
-	GetByEmail(ctx context.Context, email string) (*mongo.User, error)
-	GetAll(ctx context.Context) ([]*mongo.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, edit mongo.UserEdit) (*mongo.User, error)
-	Delete(ctx context.Context, id, loggedInUserID string) error
-}
-
-type User struct {
-	id        string
-	cusKey    string
-	Email     string
-	FirstName string
-	LastName  string
-	Roles     // TODO: figure out if this has the potential to be nil
-	Phone     *string
-	CanSMS    *bool
-	Birthday  *time.Time
-	accounting
-}
-
-func (u *User) GetID() string {
-	return u.id
-}
-
-func (u *User) GetCusKey() string {
-	return u.cusKey
-}
-
-type UserEdit struct {
-	Email     *string
-	Password  *string
-	FirstName *string
-	LastName  *string
-	Roles
-	Phone    *string
-	CanSMS   *bool
-	Birthday *time.Time
 }
 
 func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, string, error) {
@@ -111,10 +58,6 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 		CanSMS:    user.CanSMS,
 		Birthday:  user.Birthday,
 	})
-}
-
-type userGetter interface {
-	Get(ctx context.Context, id string) (*User, error)
 }
 
 func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
@@ -235,6 +178,51 @@ func (u *usersBiz) Delete(ctx context.Context, id, loggedInUserID string) error 
 	return u.data.Delete(ctx, id, loggedInUserID)
 }
 
+type User struct {
+	id        string
+	cusKey    string
+	Email     string
+	FirstName string
+	LastName  string
+	Roles     // TODO: figure out if this has the potential to be nil
+	Phone     *string
+	CanSMS    *bool
+	Birthday  *time.Time
+	accounting
+}
+
+func (u *User) acl() ACL {
+	return ACL{
+		{
+			Roles: Roles{
+				roleAdmin.String(),
+			},
+			Actions: lib.NewStringset(
+				"",
+			),
+		},
+	}
+}
+
+func (u *User) GetID() string {
+	return u.id
+}
+
+func (u *User) GetCusKey() string {
+	return u.cusKey
+}
+
+type UserEdit struct {
+	Email     *string
+	Password  *string
+	FirstName *string
+	LastName  *string
+	Roles
+	Phone    *string
+	CanSMS   *bool
+	Birthday *time.Time
+}
+
 type Roles []string
 
 func (r Roles) SetRole(appScope ApplicationScope, role Role) {
@@ -300,38 +288,16 @@ func (r Roles) Validate() bool {
 	return true
 }
 
-type ApplicationScope string
-
-func (a ApplicationScope) String() string {
-	return string(a)
+//counterfeiter:generate . usersData
+type usersData interface {
+	New(ctx context.Context, loggedInUserID string, user mongo.User) (string, error)
+	Get(ctx context.Context, id string) (*mongo.User, error)
+	GetByEmail(ctx context.Context, email string) (*mongo.User, error)
+	GetAll(ctx context.Context) ([]*mongo.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, edit mongo.UserEdit) (*mongo.User, error)
+	Delete(ctx context.Context, id, loggedInUserID string) error
 }
 
-func (a ApplicationScope) Validate() bool {
-	switch a {
-	case AppScopeGlobal:
-	case AppScopeBlog:
-	default:
-		// log what was input here
-		return false
-	}
-
-	return true
-}
-
-type Role string
-
-func (r Role) String() string {
-	return string(r)
-}
-
-func (r Role) Validate() bool {
-	switch r {
-	case RoleAdmin:
-	case RoleUser:
-	default:
-		// log what was input here
-		return false
-	}
-
-	return true
+type userGetter interface {
+	Get(ctx context.Context, id string) (*User, error)
 }

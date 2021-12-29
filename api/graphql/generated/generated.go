@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -41,6 +42,8 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	Acl          func(ctx context.Context, obj interface{}, next graphql.Resolver, action string) (res interface{}, err error)
+	LoadResource func(ctx context.Context, obj interface{}, next graphql.Resolver, resourceType string) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -68,7 +71,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		User  func(childComplexity int, id string) int
+		User  func(childComplexity int, input models.UserInput) int
 		Users func(childComplexity int) int
 	}
 
@@ -96,7 +99,7 @@ type MutationResolver interface {
 	DeleteUser(ctx context.Context, input models.DeleteUserInput) (*models.DeleteUserOutput, error)
 }
 type QueryResolver interface {
-	User(ctx context.Context, id string) (*models.User, error)
+	User(ctx context.Context, input models.UserInput) (*models.User, error)
 	Users(ctx context.Context) ([]*models.User, error)
 }
 
@@ -222,7 +225,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+		return e.complexity.Query.User(childComplexity, args["input"].(models.UserInput)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -379,89 +382,131 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "schema.graphqls", Input: `type User {
-  id: ID!
-  email: String!
-  firstName: String!
-  lastName: String!
-  roles: [String!]
-  phone: String
-  canSMS: Boolean
-  birthday: Time
-  createdAt: Time!
-  updatedAt: Time!
-  createdBy: ID!
-  updatedBy: ID!
-}
-
-input CreateUserInput {
-  email: String!
-  password: String!
-  firstName: String!
-  lastName: String!
-  roles: [String!]
-  phone: String
-  canSMS: Boolean
-  birthday: Time
-}
-
-type CreateUserOutput {
-  id: ID!
-}
-
-input UpdateUserInput {
-  id: ID!
-  email: String
-  password: String
-  firstName: String
-  lastName: String
-  roles: [String!]
-  phone: String
-  canSMS: Boolean
-  birthday: Time
-}
-
-input DeleteUserInput {
-  id: ID!
-}
-
-type DeleteUserOutput {
-  success: Boolean!
-}
-
-input LoginInput {
-  email: String!
-  password: String!
+	{Name: "schemas/authn.graphqls", Input: `input LoginInput {
+    email: String!
+    password: String!
 }
 
 type AuthOutput {
-  accessToken: String!
-  accessTokenExpiry: Int64!
-  refreshToken: String!
-  refreshTokenExpiry: Int64!
+    accessToken: String!
+    accessTokenExpiry: Int64!
+    refreshToken: String!
+    refreshTokenExpiry: Int64!
 }
 
-type Query {
-  user(id: ID!): User
-  users: [User!]
-}
+extend type Mutation {
+    login(input: LoginInput!): AuthOutput!
+    refreshToken: AuthOutput!
+}`, BuiltIn: false},
+	{Name: "schemas/schema.graphqls", Input: `type Query
 
-type Mutation {
-  login(input: LoginInput!): AuthOutput!
-  refreshToken: AuthOutput!
-  createUser(input: CreateUserInput!): CreateUserOutput!
-  updateUser(input: UpdateUserInput!): User!
-  deleteUser(input: DeleteUserInput!): DeleteUserOutput!
-}
+type Mutation
+
+directive @loadResource(resourceType: String!) on INPUT_FIELD_DEFINITION
+directive @acl(action: String!) on OBJECT | INPUT_OBJECT | FIELD_DEFINITION
 
 scalar Time
 scalar Int64`, BuiltIn: false},
+	{Name: "schemas/users.graphqls", Input: `type User {
+    id: ID!
+    email: String!
+    firstName: String!
+    lastName: String!
+    roles: [String!]
+    phone: String
+    canSMS: Boolean
+    birthday: Time
+    createdAt: Time!
+    updatedAt: Time!
+    createdBy: ID!
+    updatedBy: ID!
+}
+
+input UserInput {
+    id: ID! @loadResource(resourceType: "user")
+}
+
+input CreateUserInput {
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    roles: [String!]
+    phone: String
+    canSMS: Boolean
+    birthday: Time
+}
+
+type CreateUserOutput {
+    id: ID!
+}
+
+input UpdateUserInput {
+    id: ID! @loadResource(resourceType: "user")
+    email: String
+    password: String
+    firstName: String
+    lastName: String
+    roles: [String!]
+    phone: String
+    canSMS: Boolean
+    birthday: Time
+}
+
+input DeleteUserInput {
+     id: ID! @loadResource(resourceType: "user")
+}
+
+type DeleteUserOutput {
+     success: Boolean!
+}
+
+extend type Query {
+    user(input: UserInput!): User
+    users: [User!]
+}
+
+extend type Mutation {
+    createUser(input: CreateUserInput!): CreateUserOutput!
+    updateUser(input: UpdateUserInput!): User!
+    deleteUser(input: DeleteUserInput!): DeleteUserOutput!
+}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) dir_acl_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["action"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("action"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["action"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) dir_loadResource_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["resourceType"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resourceType"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["resourceType"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -541,15 +586,15 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+	var arg0 models.UserInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -1029,7 +1074,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, args["id"].(string))
+		return ec.resolvers.Query().User(rctx, args["input"].(models.UserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2768,9 +2813,27 @@ func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, o
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			directive0 := func(ctx context.Context) (interface{}, error) { return ec.unmarshalNID2string(ctx, v) }
+			directive1 := func(ctx context.Context) (interface{}, error) {
+				resourceType, err := ec.unmarshalNString2string(ctx, "user")
+				if err != nil {
+					return nil, err
+				}
+				if ec.directives.LoadResource == nil {
+					return nil, errors.New("directive loadResource is not implemented")
+				}
+				return ec.directives.LoadResource(ctx, obj, directive0, resourceType)
+			}
+
+			tmp, err := directive1(ctx)
 			if err != nil {
-				return it, err
+				return it, graphql.ErrorOnPath(ctx, err)
+			}
+			if data, ok := tmp.(string); ok {
+				it.ID = data
+			} else {
+				err := fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+				return it, graphql.ErrorOnPath(ctx, err)
 			}
 		}
 	}
@@ -2822,9 +2885,27 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			directive0 := func(ctx context.Context) (interface{}, error) { return ec.unmarshalNID2string(ctx, v) }
+			directive1 := func(ctx context.Context) (interface{}, error) {
+				resourceType, err := ec.unmarshalNString2string(ctx, "user")
+				if err != nil {
+					return nil, err
+				}
+				if ec.directives.LoadResource == nil {
+					return nil, errors.New("directive loadResource is not implemented")
+				}
+				return ec.directives.LoadResource(ctx, obj, directive0, resourceType)
+			}
+
+			tmp, err := directive1(ctx)
 			if err != nil {
-				return it, err
+				return it, graphql.ErrorOnPath(ctx, err)
+			}
+			if data, ok := tmp.(string); ok {
+				it.ID = data
+			} else {
+				err := fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+				return it, graphql.ErrorOnPath(ctx, err)
 			}
 		case "email":
 			var err error
@@ -2889,6 +2970,47 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			it.Birthday, err = ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
 			if err != nil {
 				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj interface{}) (models.UserInput, error) {
+	var it models.UserInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			directive0 := func(ctx context.Context) (interface{}, error) { return ec.unmarshalNID2string(ctx, v) }
+			directive1 := func(ctx context.Context) (interface{}, error) {
+				resourceType, err := ec.unmarshalNString2string(ctx, "user")
+				if err != nil {
+					return nil, err
+				}
+				if ec.directives.LoadResource == nil {
+					return nil, errors.New("directive loadResource is not implemented")
+				}
+				return ec.directives.LoadResource(ctx, obj, directive0, resourceType)
+			}
+
+			tmp, err := directive1(ctx)
+			if err != nil {
+				return it, graphql.ErrorOnPath(ctx, err)
+			}
+			if data, ok := tmp.(string); ok {
+				it.ID = data
+			} else {
+				err := fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
+				return it, graphql.ErrorOnPath(ctx, err)
 			}
 		}
 	}
@@ -3572,6 +3694,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋclassicᚑmassokᚋcl
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserInput2githubᚗcomᚋclassicᚑmassokᚋclassicᚑmassokᚑbeᚋapiᚋgraphqlᚋmodelsᚐUserInput(ctx context.Context, v interface{}) (models.UserInput, error) {
+	res, err := ec.unmarshalInputUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

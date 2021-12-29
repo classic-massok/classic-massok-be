@@ -3,11 +3,11 @@ package resolvers
 import (
 	"context"
 
-	"github.com/classic-massok/classic-massok-be/api/graphql/models"
+	graphqlmodels "github.com/classic-massok/classic-massok-be/api/graphql/models"
 	"github.com/classic-massok/classic-massok-be/business"
 )
 
-func (m *mutation) CreateUser(ctx context.Context, input models.CreateUserInput) (*models.CreateUserOutput, error) {
+func (m *mutation) CreateUser(ctx context.Context, input graphqlmodels.CreateUserInput) (*graphqlmodels.CreateUserOutput, error) {
 	id, err := m.UsersBiz.New(ctx, "", input.Password, business.User{
 		Email:     input.Email,
 		FirstName: input.FirstName,
@@ -21,18 +21,18 @@ func (m *mutation) CreateUser(ctx context.Context, input models.CreateUserInput)
 		return nil, err
 	}
 
-	return &models.CreateUserOutput{
+	return &graphqlmodels.CreateUserOutput{
 		ID: id,
 	}, nil
 }
 
-func (q *query) User(ctx context.Context, id string) (*models.User, error) {
-	bizUser, err := q.UsersBiz.Get(ctx, id)
+func (q *query) User(ctx context.Context, input graphqlmodels.UserInput) (*graphqlmodels.User, error) {
+	bizUser, err := q.UsersBiz.Get(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &models.User{
+	return &graphqlmodels.User{
 		bizUser.GetID(),
 		bizUser.Email,
 		bizUser.FirstName,
@@ -48,15 +48,15 @@ func (q *query) User(ctx context.Context, id string) (*models.User, error) {
 	}, nil
 }
 
-func (q *query) Users(ctx context.Context) ([]*models.User, error) {
+func (q *query) Users(ctx context.Context) ([]*graphqlmodels.User, error) {
 	bizUsers, err := q.UsersBiz.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	users := make([]*models.User, len(bizUsers))
+	users := make([]*graphqlmodels.User, len(bizUsers))
 	for i, bizUser := range bizUsers {
-		users[i] = &models.User{
+		users[i] = &graphqlmodels.User{
 			bizUser.GetID(),
 			bizUser.Email,
 			bizUser.FirstName,
@@ -75,7 +75,7 @@ func (q *query) Users(ctx context.Context) ([]*models.User, error) {
 	return users, nil
 }
 
-func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error) {
+func (m *mutation) UpdateUser(ctx context.Context, input graphqlmodels.UpdateUserInput) (*graphqlmodels.User, error) {
 	bizUser, err := m.UsersBiz.Edit(ctx, input.ID, "", false, business.UserEdit{
 		Email:     input.Email,
 		Password:  input.Password,
@@ -89,7 +89,7 @@ func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput)
 		return nil, err
 	}
 
-	return &models.User{
+	return &graphqlmodels.User{
 		bizUser.GetID(),
 		bizUser.Email,
 		bizUser.FirstName,
@@ -105,10 +105,10 @@ func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput)
 	}, nil
 }
 
-func (m *mutation) DeleteUser(ctx context.Context, input models.DeleteUserInput) (*models.DeleteUserOutput, error) {
+func (m *mutation) DeleteUser(ctx context.Context, input graphqlmodels.DeleteUserInput) (*graphqlmodels.DeleteUserOutput, error) {
 	if err := m.UsersBiz.Delete(ctx, input.ID, ""); err != nil {
 		return nil, err
 	}
 
-	return &models.DeleteUserOutput{true}, nil
+	return &graphqlmodels.DeleteUserOutput{true}, nil
 }

@@ -67,3 +67,7 @@ type User struct {
 	CreatedBy string     `json:"createdBy"`
 	UpdatedBy string     `json:"updatedBy"`
 }
+
+type UserInput struct {
+	ID string `json:"id"`
+}

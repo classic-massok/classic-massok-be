@@ -1,6 +1,6 @@
 package lib
 
-func New(strings ...string) StringSet {
+func NewStringset(strings ...string) StringSet {
 	ss := make(StringSet)
 	for _, str := range strings {
 		ss[str] = struct{}{}

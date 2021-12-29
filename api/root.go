@@ -53,6 +53,7 @@ func (r *Router) getAuthzMW() *authz.AuthzMW {
 
 func (r *Router) getGraphQL() *graphql.GraphQL {
 	return &graphql.GraphQL{
+		r.getAuthzMW(),
 		r.UsersBiz,
 	}
 }

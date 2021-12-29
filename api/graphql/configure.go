@@ -2,9 +2,12 @@ package graphql
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/classic-massok/classic-massok-be/api/authz"
 	"github.com/classic-massok/classic-massok-be/api/graphql/generated"
 	"github.com/classic-massok/classic-massok-be/api/graphql/resolvers"
 	"github.com/classic-massok/classic-massok-be/business"
@@ -12,6 +15,7 @@ import (
 )
 
 type GraphQL struct {
+	AuthzMW  *authz.AuthzMW // TODO: interface this
 	UsersBiz usersBiz
 }
 
@@ -23,20 +27,24 @@ func (g *GraphQL) Configure(graphql *echo.Group) {
 }
 
 func (g *GraphQL) graphqlMain(c echo.Context) error {
-	// acl := func(ctx context.Context, obj interface{}, next graph.Resolver, permission string) (res interface{}, err error) {
-	// 	// Need to make a check permissions that uses the obj above to get the resource and it's perms
-	// 	if err := authz.CheckPermissions(c, permission); err != nil {
-	// 		return nil, err
-	// 	}
+	loadResource := func(ctx context.Context, obj interface{}, next graphql.Resolver, resourceType string) (interface{}, error) {
+		input, ok := obj.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid object for id getter: %T", obj) // TODO: figure out best error here (and a pattern for gql)
+		}
 
-	// 	return next(ctx)
-	// }
+		c.Echo().Use(g.AuthzMW.LoadResource(resourceType, input["id"].(string)))
+		return next(ctx)
+	}
+
+	acl := func(ctx context.Context, obj interface{}, next graphql.Resolver, action string) (interface{}, error) {
+		c.Echo().Use(g.AuthzMW.RequiresPermission(action))
+		return next(ctx)
+	}
 
 	config := generated.Config{
-		Resolvers: &resolvers.Resolver{
-			g.UsersBiz,
-		},
-		Directives: generated.DirectiveRoot{},
+		Resolvers:  g.buildResolver(),
+		Directives: generated.DirectiveRoot{acl, loadResource},
 		Complexity: generated.ComplexityRoot{},
 	}
 
@@ -52,6 +60,12 @@ func graphqlPlayground(c echo.Context) error {
 	srv := playground.Handler("GraphQL playground", "/api/graphql")
 	srv.ServeHTTP(c.Response(), c.Request())
 	return nil
+}
+
+func (g *GraphQL) buildResolver() *resolvers.Resolver {
+	return &resolvers.Resolver{
+		g.UsersBiz,
+	}
 }
 
 type usersBiz interface {
