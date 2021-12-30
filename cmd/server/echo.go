@@ -8,7 +8,7 @@ import (
 )
 
 func getEchoRouter() http.Handler { // TODO: figure out if setup of resource repo seem reasonable
-	userBiz := business.NewUsersBiz()
+	userBiz := business.NewUsersBiz() // TODO: inject db connection through biz layers, figure out if we want to interface this
 
 	resourceRepo := &business.ResourceRepo{
 		userBiz,

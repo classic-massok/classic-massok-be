@@ -44,6 +44,11 @@ func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput,
 		return nil, fmt.Errorf("error generating refresh token: %w", err)
 	}
 
+	tokenType := c.Get(authn.TokenTypeKey).(string)
+	if tokenType != authn.RefreshTokenType {
+		return nil, fmt.Errorf("forbidden")
+	}
+
 	userID := c.Get(authn.UserIDKey).(string) // TODO: is this safe?
 
 	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})

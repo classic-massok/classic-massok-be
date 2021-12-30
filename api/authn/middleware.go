@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	UserIDKey = "userID"
-	RolesKey  = "roles"
+	UserIDKey    = "userID"
+	RolesKey     = "roles"
+	TokenTypeKey = "tokenType"
 )
 
 type AuthnMW struct {
@@ -34,7 +35,7 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		claims, ok := token.Claims.(*tokenClaims)
-		if !ok || !token.Valid || claims.UserID == "" || claims.TokenType != accessTokenType ||
+		if !ok || !token.Valid || claims.UserID == "" || claims.TokenType != AccessTokenType ||
 			time.Now().After(time.Unix(claims.ExpiresAt, 0)) || claims.Issuer != "classic-massok.auth.service" {
 			return next(c)
 			// return fmt.Errorf("invalid token: authentication failed")
@@ -48,6 +49,7 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 
 		c.Set(UserIDKey, user.GetID())
 		c.Set(RolesKey, user.Roles)
+		c.Set(TokenTypeKey, claims.TokenType)
 		return next(c)
 	}
 }
@@ -62,7 +64,7 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 	}
 
 	claims, ok := token.Claims.(*tokenClaims)
-	if !ok || !token.Valid || claims.UserID == "" || claims.TokenType != refreshTokenType || time.Now().After(time.Unix(claims.ExpiresAt, 0)) {
+	if !ok || !token.Valid || claims.UserID == "" || claims.TokenType != RefreshTokenType || time.Now().After(time.Unix(claims.ExpiresAt, 0)) {
 		return next(c)
 		// return fmt.Errorf("invalid token: authentication failed")
 	}
@@ -78,8 +80,9 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 		// return fmt.Errorf("invalid token: authentication failed")
 	}
 
-	c.Set(UserIDKey, claims.UserID)
+	c.Set(UserIDKey, user.GetID())
 	c.Set(RolesKey, user.Roles)
+	c.Set(TokenTypeKey, claims.TokenType)
 	return next(c)
 }
 

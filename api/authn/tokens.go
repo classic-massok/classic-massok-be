@@ -13,15 +13,15 @@ import (
 )
 
 const (
-	accessTokenType  = "access"
-	refreshTokenType = "refresh"
+	AccessTokenType  = "access"
+	RefreshTokenType = "refresh"
 )
 
 func GenerateAccessToken(userID string) (string, int64, error) {
 	expiry := time.Now().Add(15 * time.Minute).Unix()
 	claims := tokenClaims{
 		UserID:    userID,
-		TokenType: accessTokenType,
+		TokenType: AccessTokenType,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expiry,
 			Issuer:    "classic-massok.auth.service",
@@ -41,7 +41,7 @@ func GenerateRefreshToken(userID, cusKey string) (string, int64, error) {
 	expiry := time.Now().Add(18 * time.Hour).Unix()
 	claims := tokenClaims{
 		UserID:    userID,
-		TokenType: refreshTokenType,
+		TokenType: RefreshTokenType,
 		CusKey:    string(hashedCusKey),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expiry,
