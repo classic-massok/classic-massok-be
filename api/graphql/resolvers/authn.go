@@ -15,6 +15,11 @@ func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*
 		return nil, err
 	}
 
+	_, err = m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
+	if err != nil {
+		return nil, fmt.Errorf("error generating refresh token: %w", err)
+	}
+
 	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(userID)
 	if err != nil {
 		return nil, fmt.Errorf("error generating access token: %w", err)
