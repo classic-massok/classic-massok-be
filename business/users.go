@@ -3,7 +3,6 @@ package business
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/classic-massok/classic-massok-be/data/mongo"
@@ -11,6 +10,13 @@ import (
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/gommon/random"
 	"golang.org/x/crypto/bcrypt"
+)
+
+// User Actions
+const (
+	createUser = "create.user"
+	readUser   = "read.user"
+	updateUser = "update.user"
 )
 
 // NewUsersBiz is the constructure for the users business layers
@@ -38,8 +44,8 @@ func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, s
 }
 
 func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user User) (string, error) {
-	if !user.Roles.Validate() {
-		return "", fmt.Errorf("invalid user roles")
+	if err := user.Roles.Validate(); err != nil {
+		return "", err
 	}
 
 	passwordBytes := []byte(password)
@@ -143,8 +149,8 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 	}
 
 	if userEdit.Roles != nil {
-		if !userEdit.Roles.Validate() {
-			return nil, fmt.Errorf("invalid user roles")
+		if err := userEdit.Roles.Validate(); err != nil {
+			return nil, err
 		}
 
 		mongoUserEdit.Roles = (*[]string)(&userEdit.Roles)
@@ -194,9 +200,7 @@ type User struct {
 func (u *User) acl() ACL {
 	return ACL{
 		{
-			Roles: Roles{
-				roleAdmin.String(),
-			},
+			Roles: Roles{},
 			Actions: lib.NewStringset(
 				"",
 			),
@@ -225,23 +229,37 @@ type UserEdit struct {
 
 type Roles []string
 
-func (r Roles) SetRole(appScope ApplicationScope, role Role) {
+func (r Roles) SetRoles(appScope ApplicationScope, roleType RoleType, resourceIDs ...string) error {
 	if r == nil {
 		r = Roles{}
 	}
 
-	prefixedRole := fmt.Sprintf("%s.%s", appScope, role)
-	r = append(r, prefixedRole)
+	roles, err := generateRoles(appScope, roleType, resourceIDs...)
+	if err != nil {
+		return err
+	}
+
+	r = append(r, roles...)
+	return nil
 }
 
-func (r Roles) HasRole(appScope ApplicationScope, role Role) bool {
+func (r Roles) HasRole(appScope ApplicationScope, roleType RoleType, resourceID *string) bool {
 	if r == nil {
 		return false
 	}
 
-	prefixedRole := fmt.Sprintf("%s.%s", appScope, role)
+	if resourceID == nil {
+		role := fmt.Sprintf("%s.%s", appScope, roleType)
+		for _, curRole := range r {
+			if curRole == role {
+				return true
+			}
+		}
+	}
+
+	role := fmt.Sprintf("%s.%s.%s", appScope, roleType, *resourceID)
 	for _, curRole := range r {
-		if curRole == prefixedRole {
+		if curRole == role {
 			return true
 		}
 	}
@@ -249,14 +267,24 @@ func (r Roles) HasRole(appScope ApplicationScope, role Role) bool {
 	return false
 }
 
-func (r Roles) RemoveRole(appScope ApplicationScope, role Role) bool {
+func (r Roles) RemoveRole(appScope ApplicationScope, roleType RoleType, resourceID *string) bool {
 	if r == nil {
 		return false
 	}
 
-	prefixedRole := fmt.Sprintf("%s.%s", appScope, role)
+	if resourceID == nil {
+		role := fmt.Sprintf("%s.%s", appScope, roleType)
+		for i, curRole := range r {
+			if curRole == role {
+				r = append(r[:i], r[i+1:]...)
+				return true
+			}
+		}
+	}
+
+	role := fmt.Sprintf("%s.%s.%s", appScope, roleType, *resourceID)
 	for i, curRole := range r {
-		if curRole == prefixedRole {
+		if curRole == role {
 			r = append(r[:i], r[i+1:]...)
 			return true
 		}
@@ -265,27 +293,17 @@ func (r Roles) RemoveRole(appScope ApplicationScope, role Role) bool {
 	return false
 }
 
-func (r Roles) Validate() bool {
+// TODO: do we need this?
+func (r Roles) Validate() error {
 	if r == nil {
-		return true
+		return nil
 	}
 
 	for _, curRole := range r {
-		rs := strings.Split(curRole, ".")
-		if len(rs) != 2 {
-			return false
-		}
-
-		if !ApplicationScope(rs[0]).Validate() {
-			return false
-		}
-
-		if !Role(rs[1]).Validate() {
-			return false
-		}
+		role(curRole).Validate()
 	}
 
-	return true
+	return nil
 }
 
 //counterfeiter:generate . usersData

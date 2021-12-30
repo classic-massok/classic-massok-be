@@ -13,5 +13,7 @@ func getEchoRouter() http.Handler {
 		business.NewUsersBiz(),
 	}
 
-	return router.SetRouter()
+	return router.SetRouter(&business.ResourceRepo{
+		router.UsersBiz,
+	})
 }

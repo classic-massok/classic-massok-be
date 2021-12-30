@@ -447,7 +447,8 @@ input UpdateUserInput {
     password: String
     firstName: String
     lastName: String
-    roles: [String!]
+    addRoles: [String!]
+    removeRoles: [String!]
     phone: String
     canSMS: Boolean
     birthday: Time
@@ -2939,11 +2940,19 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
-		case "roles":
+		case "addRoles":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roles"))
-			it.Roles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("addRoles"))
+			it.AddRoles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "removeRoles":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("removeRoles"))
+			it.RemoveRoles, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}

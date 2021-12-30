@@ -42,15 +42,16 @@ type LoginInput struct {
 }
 
 type UpdateUserInput struct {
-	ID        string     `json:"id"`
-	Email     *string    `json:"email"`
-	Password  *string    `json:"password"`
-	FirstName *string    `json:"firstName"`
-	LastName  *string    `json:"lastName"`
-	Roles     []string   `json:"roles"`
-	Phone     *string    `json:"phone"`
-	CanSms    *bool      `json:"canSMS"`
-	Birthday  *time.Time `json:"birthday"`
+	ID          string     `json:"id"`
+	Email       *string    `json:"email"`
+	Password    *string    `json:"password"`
+	FirstName   *string    `json:"firstName"`
+	LastName    *string    `json:"lastName"`
+	AddRoles    []string   `json:"addRoles"`
+	RemoveRoles []string   `json:"removeRoles"`
+	Phone       *string    `json:"phone"`
+	CanSms      *bool      `json:"canSMS"`
+	Birthday    *time.Time `json:"birthday"`
 }
 
 type User struct {

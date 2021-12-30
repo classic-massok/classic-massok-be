@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/classic-massok/classic-massok-be/api/authn"
+	"github.com/classic-massok/classic-massok-be/api/core"
 	"github.com/classic-massok/classic-massok-be/business"
 	"github.com/labstack/echo/v4"
 )
@@ -12,19 +13,17 @@ import (
 const resourceKey = "resource"
 
 type AuthzMW struct {
-	ACLBiz  accessAllower
-	BizRepo resourceGetter
+	ACLBiz          accessAllower
+	ResourceRepoBiz resourceGetter
 }
 
 func (a *AuthzMW) LoadResource(resourceType string, resourceID string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			resource, err := a.BizRepo.Get(c.Request().Context(), resourceType, resourceID)
-			if err != nil {
-				return err // TODO: do actual json error response here (404)
+			if err := LoadResource(c, a.ResourceRepoBiz, resourceType, resourceID); err != nil {
+				return core.JSON(c, 404, nil, "not found")
 			}
 
-			c.Set("resource", resource)
 			return next(c)
 		}
 	}

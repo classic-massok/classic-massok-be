@@ -15,8 +15,8 @@ import (
 )
 
 type GraphQL struct {
-	AuthzMW  *authz.AuthzMW // TODO: interface this
-	UsersBiz usersBiz
+	ResourceRepoBiz resourceRepoBiz // TODO: interface this
+	UsersBiz        usersBiz
 }
 
 func (g *GraphQL) Configure(graphql *echo.Group) {
@@ -33,12 +33,15 @@ func (g *GraphQL) graphqlMain(c echo.Context) error {
 			return nil, fmt.Errorf("invalid object for id getter: %T", obj) // TODO: figure out best error here (and a pattern for gql)
 		}
 
-		c.Echo().Use(g.AuthzMW.LoadResource(resourceType, input["id"].(string)))
+		if err := authz.LoadResource(c, g.ResourceRepoBiz, resourceType, input["id"].(string)); err != nil {
+			return nil, fmt.Errorf("not found")
+		}
+
 		return next(ctx)
 	}
 
 	acl := func(ctx context.Context, obj interface{}, next graphql.Resolver, action string) (interface{}, error) {
-		c.Echo().Use(g.AuthzMW.RequiresPermission(action))
+		// c.Echo().Use(g.AuthzMW.RequiresPermission(action))
 		return next(ctx)
 	}
 
@@ -66,6 +69,10 @@ func (g *GraphQL) buildResolver() *resolvers.Resolver {
 	return &resolvers.Resolver{
 		g.UsersBiz,
 	}
+}
+
+type resourceRepoBiz interface {
+	Get(ctx context.Context, resourceType, resourceID string) (interface{}, error)
 }
 
 type usersBiz interface {

@@ -18,7 +18,7 @@ type Router struct {
 	UsersBiz usersBiz
 }
 
-func (r *Router) SetRouter() http.Handler {
+func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz) http.Handler {
 	e := echo.New()
 	authnMW := r.getAuthnMW()
 
@@ -28,10 +28,10 @@ func (r *Router) SetRouter() http.Handler {
 	apiRouter := e.Group("/api")
 
 	restRouter := apiRouter.Group("/rest")
-	rest.Configure(restRouter)
+	r.getRest(resourceRepoBiz).Configure(restRouter)
 
 	graphqlRouter := apiRouter.Group("/graphql")
-	r.getGraphQL().Configure(graphqlRouter)
+	r.getGraphQL(resourceRepoBiz).Configure(graphqlRouter)
 
 	return e
 }
@@ -42,18 +42,23 @@ func (r *Router) getAuthnMW() *authn.AuthnMW {
 	}
 }
 
-func (r *Router) getAuthzMW() *authz.AuthzMW {
+func (r *Router) getAuthzMW(resourceRepoBiz resourceRepoBiz) *authz.AuthzMW {
 	return &authz.AuthzMW{
 		r.ACLBiz,
-		&business.ResourceRepo{
-			r.UsersBiz,
-		},
+		resourceRepoBiz,
 	}
 }
 
-func (r *Router) getGraphQL() *graphql.GraphQL {
+func (r *Router) getRest(resourceRepoBiz resourceRepoBiz) *rest.Rest {
+	return &rest.Rest{
+		r.getAuthzMW(resourceRepoBiz),
+		r.UsersBiz,
+	}
+}
+
+func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz) *graphql.GraphQL {
 	return &graphql.GraphQL{
-		r.getAuthzMW(),
+		resourceRepoBiz,
 		r.UsersBiz,
 	}
 }
@@ -83,6 +88,10 @@ func EchoContextFromContext(ctx context.Context) (echo.Context, error) {
 
 type aclBiz interface {
 	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}) (bool, error)
+}
+
+type resourceRepoBiz interface {
+	Get(ctx context.Context, resourceType, resourceID string) (interface{}, error)
 }
 
 type usersBiz interface {
