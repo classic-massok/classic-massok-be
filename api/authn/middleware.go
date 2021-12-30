@@ -81,7 +81,6 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 	}
 
 	c.Set(UserIDKey, user.GetID())
-	c.Set(RolesKey, user.Roles)
 	c.Set(TokenTypeKey, claims.TokenType)
 	return next(c)
 }
