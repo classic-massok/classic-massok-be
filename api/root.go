@@ -58,6 +58,7 @@ func (r *Router) getRest(resourceRepoBiz resourceRepoBiz) *rest.Rest {
 
 func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz) *graphql.GraphQL {
 	return &graphql.GraphQL{
+		r.ACLBiz,
 		resourceRepoBiz,
 		r.UsersBiz,
 	}
@@ -87,7 +88,7 @@ func EchoContextFromContext(ctx context.Context) (echo.Context, error) {
 }
 
 type aclBiz interface {
-	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}) (bool, error)
+	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}, action string) (bool, error)
 }
 
 type resourceRepoBiz interface {

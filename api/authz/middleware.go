@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/classic-massok/classic-massok-be/api/authn"
 	"github.com/classic-massok/classic-massok-be/api/core"
 	"github.com/classic-massok/classic-massok-be/business"
 	"github.com/labstack/echo/v4"
@@ -21,7 +20,7 @@ func (a *AuthzMW) LoadResource(resourceType string, resourceID string) echo.Midd
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if err := LoadResource(c, a.ResourceRepoBiz, resourceType, resourceID); err != nil {
-				return core.JSON(c, 404, nil, "not found")
+				return core.JSON(c, 404, nil, err)
 			}
 
 			return next(c)
@@ -32,20 +31,14 @@ func (a *AuthzMW) LoadResource(resourceType string, resourceID string) echo.Midd
 func (a *AuthzMW) RequiresPermission(action string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			roles := c.Get(authn.RolesKey).(business.Roles)
-			resource := c.Get(resourceKey)
-
-			if len(roles) == 0 {
-				return fmt.Errorf("unauthorized") // TODO: do actual json error response here (401)
-			}
-
-			allowed, err := a.ACLBiz.AccessAllowed(c.Request().Context(), roles, resource)
-			if err != nil {
-				return err // TODO: do actual json error response here (500)
-			}
-
-			if !allowed {
-				return fmt.Errorf("forbidden") // TODO: do actual json error response here (403)
+			switch err := RequiresPermission(c, a.ACLBiz, action); err {
+			case nil:
+			case errUnauthorized:
+				return core.JSON(c, 401, nil, err)
+			case errForbidden:
+				return core.JSON(c, 403, nil, err)
+			default:
+				return core.JSON(c, 500, nil, fmt.Errorf("server error: %w", err))
 			}
 
 			return next(c)
@@ -58,5 +51,5 @@ type resourceGetter interface {
 }
 
 type accessAllower interface {
-	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}) (bool, error)
+	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}, action string) (bool, error)
 }

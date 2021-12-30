@@ -15,6 +15,7 @@ import (
 )
 
 type GraphQL struct {
+	ACLBiz          accessAllower
 	ResourceRepoBiz resourceRepoBiz // TODO: interface this
 	UsersBiz        usersBiz
 }
@@ -41,7 +42,10 @@ func (g *GraphQL) graphqlMain(c echo.Context) error {
 	}
 
 	acl := func(ctx context.Context, obj interface{}, next graphql.Resolver, action string) (interface{}, error) {
-		// c.Echo().Use(g.AuthzMW.RequiresPermission(action))
+		if err := authz.RequiresPermission(c, g.ACLBiz, action); err != nil {
+			return nil, err
+		}
+
 		return next(ctx)
 	}
 
@@ -69,6 +73,10 @@ func (g *GraphQL) buildResolver() *resolvers.Resolver {
 	return &resolvers.Resolver{
 		g.UsersBiz,
 	}
+}
+
+type accessAllower interface {
+	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}, action string) (bool, error)
 }
 
 type resourceRepoBiz interface {

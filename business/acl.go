@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/classic-massok/classic-massok-be/lib"
+	"github.com/pkg/errors"
 )
 
-// Resource Refs
+// Resource refs
 const (
 	AllResources = "*"
 	SelfResource = "self"
@@ -22,17 +23,23 @@ const (
 
 // User Role types (ADD PERM DEFS)
 const (
-	roleAdmin RoleType = "admin"
-	roleUser  RoleType = "user"
+	roleTypeAdmin RoleType = "admin"
+	roleTypeUser  RoleType = "user"
 )
 
-func NewACLBiz(verbose bool) *aclBiz {
-	return &aclBiz{verbose}
+// Default roles
+const (
+	globalAdmin = "global.admin"
+)
+
+func NewACLBiz(verbose bool, resourceRepoBiz resourceRepoBiz) *aclBiz {
+	return &aclBiz{resourceRepoBiz, verbose}
 }
 
 // aclBiz represents the access control layer business logic
 type aclBiz struct {
-	Verbose bool // TODO: implement verbose logging logic when adding logging
+	resourceRepoBiz resourceRepoBiz
+	verbose         bool // TODO: implement verbose logging logic when adding logging
 }
 
 type ACL []ACE
@@ -42,27 +49,46 @@ type ACE struct {
 	Actions lib.StringSet
 }
 
-func (a *aclBiz) AccessAllowed(ctx context.Context, roles Roles, resource interface{}) (bool, error) {
+func (a *aclBiz) AccessAllowed(ctx context.Context, roles Roles, resource interface{}, action string) (bool, error) {
 	if resource == nil {
 		resource = &RootACL{}
 	}
 
 	for {
-		// hasRootACL, ok := resource.(aclRoot)
-		// if ok {
+		hasRootACL, ok := resource.(aclRoot)
+		if ok {
+			aclItems := hasRootACL.acl()
+			for _, aclItem := range aclItems {
+				for _, role := range roles {
+					if role == globalAdmin {
+						return true, nil
+					}
 
-		// }
+					if !aclItem.Roles.HasRole(role) {
+						continue
+					}
 
-		// hasParentACL, ok := resource.(aclParent)
-		// if ok {
+					if aclItem.Actions.Contains(action) {
+						return true, nil
+					}
+				}
+			}
+		}
 
-		// 	continue
-		// }
+		hasParentACL, ok := resource.(aclParent)
+		if ok {
+			resourceType, resourceID := hasParentACL.parentACL()
+
+			var err error
+			if resource, err = a.resourceRepoBiz.Get(ctx, resourceType, resourceID); err != nil {
+				return false, errors.Wrapf(err, "failed to get %s:%s", resourceType, resourceID)
+			}
+
+			continue
+		}
 
 		return false, nil
 	}
-
-	return true, nil
 }
 
 type RootACL struct{}
@@ -97,8 +123,8 @@ func (r RoleType) String() string {
 
 func (r RoleType) Validate() error {
 	switch r {
-	case roleAdmin:
-	case roleUser:
+	case roleTypeAdmin:
+	case roleTypeUser:
 	default:
 		// log what was input here
 		return fmt.Errorf("invalid role type provided")
@@ -136,6 +162,64 @@ func (r role) Validate() error {
 	return nil
 }
 
+type Roles []string
+
+func (r Roles) SetRoles(appScope ApplicationScope, roleType RoleType, resourceIDs ...string) error {
+	if r == nil {
+		r = Roles{}
+	}
+
+	roles, err := generateRoles(appScope, roleType, resourceIDs...)
+	if err != nil {
+		return err
+	}
+
+	r = append(r, roles...)
+	return nil
+}
+
+func (r Roles) HasRole(role string) bool {
+	if r == nil {
+		return false
+	}
+
+	for _, curRole := range r {
+		if curRole == role {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (r Roles) RemoveRole(role string) bool {
+	if r == nil {
+		return false
+	}
+
+	for i, curRole := range r {
+		if curRole == role {
+			r = append(r[:i], r[i+1:]...)
+			return true
+		}
+	}
+
+	return false
+}
+
+// TODO: do we need this?
+func (r Roles) Validate() error {
+	if r == nil {
+		return nil
+	}
+
+	for _, curRole := range r {
+		role(curRole).Validate()
+	}
+
+	return nil
+}
+
 func generateRoles(applicationScope ApplicationScope, roleType RoleType, resourceIDs ...string) ([]string, error) {
 	if applicationScope == appScopeGlobal {
 		r := role(fmt.Sprintf("%s.%s", applicationScope, roleType))
@@ -163,14 +247,26 @@ func generateRoles(applicationScope ApplicationScope, roleType RoleType, resourc
 	return roles, nil
 }
 
+// ResourceRole is used as a type for a configureable resource id role (i.e. users.user.<userID>)
+type ResourceRole string
+
+func (r ResourceRole) String() string {
+	return string(r)
+}
+
+func (r ResourceRole) Populate(roleType RoleType, resourceID string) string {
+	// TODO: should we validate role type here? panic if setup wrong?
+	return fmt.Sprintf(r.String(), roleType, resourceID)
+}
+
+type resourceRepoBiz interface {
+	Get(ctx context.Context, resourceType, resourceID string) (interface{}, error)
+}
+
 type aclRoot interface {
 	acl() ACL
 }
 
 type aclParent interface {
-	parentACL(getter interface{}, id string)
-}
-
-type resourceGetter interface {
-	Get(ctx context.Context)
+	parentACL() (resourceType, id string)
 }

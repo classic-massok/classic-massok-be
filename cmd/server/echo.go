@@ -7,13 +7,19 @@ import (
 	"github.com/classic-massok/classic-massok-be/business"
 )
 
-func getEchoRouter() http.Handler {
-	router := &api.Router{
-		business.NewACLBiz(true), // TODO: make this configureable
-		business.NewUsersBiz(),
+func getEchoRouter() http.Handler { // TODO: figure out if setup of resource repo seem reasonable
+	userBiz := business.NewUsersBiz()
+
+	resourceRepo := &business.ResourceRepo{
+		userBiz,
 	}
 
-	return router.SetRouter(&business.ResourceRepo{
-		router.UsersBiz,
-	})
+	aclBiz := business.NewACLBiz(true, resourceRepo) // TODO: make this configureable
+
+	router := &api.Router{
+		aclBiz,
+		userBiz,
+	}
+
+	return router.SetRouter(resourceRepo)
 }

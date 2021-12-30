@@ -463,14 +463,14 @@ type DeleteUserOutput {
 }
 
 extend type Query {
-    user(input: UserInput!): User
+    user(input: UserInput!): User @acl(action: "user.read")
     users: [User!]
 }
 
 extend type Mutation {
     createUser(input: CreateUserInput!): CreateUserOutput!
-    updateUser(input: UpdateUserInput!): User!
-    deleteUser(input: DeleteUserInput!): DeleteUserOutput!
+    updateUser(input: UpdateUserInput!): User! @acl(action: "user.update")
+    deleteUser(input: DeleteUserInput!): DeleteUserOutput! @acl(action: "user.delete")
 }`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
@@ -990,8 +990,32 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateUser(rctx, args["input"].(models.UpdateUserInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateUser(rctx, args["input"].(models.UpdateUserInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			action, err := ec.unmarshalNString2string(ctx, "user.update")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Acl == nil {
+				return nil, errors.New("directive acl is not implemented")
+			}
+			return ec.directives.Acl(ctx, nil, directive0, action)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/classic-massok/classic-massok-be/api/graphql/models.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1032,8 +1056,32 @@ func (ec *executionContext) _Mutation_deleteUser(ctx context.Context, field grap
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteUser(rctx, args["input"].(models.DeleteUserInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteUser(rctx, args["input"].(models.DeleteUserInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			action, err := ec.unmarshalNString2string(ctx, "user.delete")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Acl == nil {
+				return nil, errors.New("directive acl is not implemented")
+			}
+			return ec.directives.Acl(ctx, nil, directive0, action)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.DeleteUserOutput); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/classic-massok/classic-massok-be/api/graphql/models.DeleteUserOutput`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1074,8 +1122,32 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx, args["input"].(models.UserInput))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().User(rctx, args["input"].(models.UserInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			action, err := ec.unmarshalNString2string(ctx, "user.read")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Acl == nil {
+				return nil, errors.New("directive acl is not implemented")
+			}
+			return ec.directives.Acl(ctx, nil, directive0, action)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*models.User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/classic-massok/classic-massok-be/api/graphql/models.User`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)

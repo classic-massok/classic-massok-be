@@ -12,12 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// User Actions
-const (
-	createUser = "create.user"
-	readUser   = "read.user"
-	updateUser = "update.user"
-)
+const userResource ResourceRole = "users.%s.%s"
 
 // NewUsersBiz is the constructure for the users business layers
 func NewUsersBiz() *usersBiz {
@@ -60,6 +55,7 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 		Password:  hashedPassword,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
+		Roles:     user.Roles,
 		Phone:     user.Phone,
 		CanSMS:    user.CanSMS,
 		Birthday:  user.Birthday,
@@ -200,9 +196,12 @@ type User struct {
 func (u *User) acl() ACL {
 	return ACL{
 		{
-			Roles: Roles{},
+			Roles: Roles{
+				userResource.Populate(roleTypeUser, u.id),
+			},
 			Actions: lib.NewStringset(
-				"",
+				"user.read",
+				"user.update",
 			),
 		},
 	}
@@ -216,7 +215,7 @@ func (u *User) GetCusKey() string {
 	return u.cusKey
 }
 
-type UserEdit struct {
+type UserEdit struct { // TODO: need to figure out adding/removing roles
 	Email     *string
 	Password  *string
 	FirstName *string
@@ -225,85 +224,6 @@ type UserEdit struct {
 	Phone    *string
 	CanSMS   *bool
 	Birthday *time.Time
-}
-
-type Roles []string
-
-func (r Roles) SetRoles(appScope ApplicationScope, roleType RoleType, resourceIDs ...string) error {
-	if r == nil {
-		r = Roles{}
-	}
-
-	roles, err := generateRoles(appScope, roleType, resourceIDs...)
-	if err != nil {
-		return err
-	}
-
-	r = append(r, roles...)
-	return nil
-}
-
-func (r Roles) HasRole(appScope ApplicationScope, roleType RoleType, resourceID *string) bool {
-	if r == nil {
-		return false
-	}
-
-	if resourceID == nil {
-		role := fmt.Sprintf("%s.%s", appScope, roleType)
-		for _, curRole := range r {
-			if curRole == role {
-				return true
-			}
-		}
-	}
-
-	role := fmt.Sprintf("%s.%s.%s", appScope, roleType, *resourceID)
-	for _, curRole := range r {
-		if curRole == role {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (r Roles) RemoveRole(appScope ApplicationScope, roleType RoleType, resourceID *string) bool {
-	if r == nil {
-		return false
-	}
-
-	if resourceID == nil {
-		role := fmt.Sprintf("%s.%s", appScope, roleType)
-		for i, curRole := range r {
-			if curRole == role {
-				r = append(r[:i], r[i+1:]...)
-				return true
-			}
-		}
-	}
-
-	role := fmt.Sprintf("%s.%s.%s", appScope, roleType, *resourceID)
-	for i, curRole := range r {
-		if curRole == role {
-			r = append(r[:i], r[i+1:]...)
-			return true
-		}
-	}
-
-	return false
-}
-
-// TODO: do we need this?
-func (r Roles) Validate() error {
-	if r == nil {
-		return nil
-	}
-
-	for _, curRole := range r {
-		role(curRole).Validate()
-	}
-
-	return nil
 }
 
 //counterfeiter:generate . usersData

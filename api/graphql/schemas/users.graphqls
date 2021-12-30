@@ -54,12 +54,12 @@ type DeleteUserOutput {
 }
 
 extend type Query {
-    user(input: UserInput!): User
+    user(input: UserInput!): User @acl(action: "user.read")
     users: [User!]
 }
 
 extend type Mutation {
     createUser(input: CreateUserInput!): CreateUserOutput!
-    updateUser(input: UpdateUserInput!): User!
-    deleteUser(input: DeleteUserInput!): DeleteUserOutput!
+    updateUser(input: UpdateUserInput!): User! @acl(action: "user.update")
+    deleteUser(input: DeleteUserInput!): DeleteUserOutput! @acl(action: "user.delete")
 }

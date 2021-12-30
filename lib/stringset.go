@@ -10,3 +10,13 @@ func NewStringset(strings ...string) StringSet {
 }
 
 type StringSet map[string]struct{}
+
+func (ss StringSet) Contains(text string) bool {
+	// _, ok := ss["*"]
+	// if ok {
+	// 	return true
+	// }
+
+	_, ok := ss[text]
+	return ok
+}
