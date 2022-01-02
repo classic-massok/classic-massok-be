@@ -423,7 +423,7 @@ scalar Int64`, BuiltIn: false},
 }
 
 input UserInput {
-    id: ID! @loadResource(resourceType: "user")
+    id: ID! @loadResource(resourceType: "users")
 }
 
 input CreateUserInput {
@@ -442,7 +442,7 @@ type CreateUserOutput {
 }
 
 input UpdateUserInput {
-    id: ID! @loadResource(resourceType: "user")
+    id: ID! @loadResource(resourceType: "users")
     email: String
     password: String
     firstName: String
@@ -455,7 +455,7 @@ input UpdateUserInput {
 }
 
 input DeleteUserInput {
-     id: ID! @loadResource(resourceType: "user")
+     id: ID! @loadResource(resourceType: "users")
 }
 
 type DeleteUserOutput {
@@ -2888,7 +2888,7 @@ func (ec *executionContext) unmarshalInputDeleteUserInput(ctx context.Context, o
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			directive0 := func(ctx context.Context) (interface{}, error) { return ec.unmarshalNID2string(ctx, v) }
 			directive1 := func(ctx context.Context) (interface{}, error) {
-				resourceType, err := ec.unmarshalNString2string(ctx, "user")
+				resourceType, err := ec.unmarshalNString2string(ctx, "users")
 				if err != nil {
 					return nil, err
 				}
@@ -2960,7 +2960,7 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			directive0 := func(ctx context.Context) (interface{}, error) { return ec.unmarshalNID2string(ctx, v) }
 			directive1 := func(ctx context.Context) (interface{}, error) {
-				resourceType, err := ec.unmarshalNString2string(ctx, "user")
+				resourceType, err := ec.unmarshalNString2string(ctx, "users")
 				if err != nil {
 					return nil, err
 				}
@@ -3073,7 +3073,7 @@ func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj int
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 			directive0 := func(ctx context.Context) (interface{}, error) { return ec.unmarshalNID2string(ctx, v) }
 			directive1 := func(ctx context.Context) (interface{}, error) {
-				resourceType, err := ec.unmarshalNString2string(ctx, "user")
+				resourceType, err := ec.unmarshalNString2string(ctx, "users")
 				if err != nil {
 					return nil, err
 				}

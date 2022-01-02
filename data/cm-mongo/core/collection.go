@@ -1,4 +1,4 @@
-package cmmongo
+package core
 
 import (
 	"context"
@@ -21,16 +21,16 @@ type Collection struct {
 
 // Insert wraps the mongo driver `Insert` method
 // 	- calls the creator methods to set id and accounting fields
-func (c *Collection) Insert(ctx context.Context, loggedInUserID string, doc Creator, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
+func (c *Collection) Insert(ctx context.Context, loggedInUserID string, doc Creator, opts ...*options.InsertOneOptions) (primitive.ObjectID, error) {
 	doc.SetOID(primitive.NewObjectID())
 	doc.SetAccounting(time.Now(), getLoggedInUserOID(loggedInUserID))
 
 	result, err := c.coll.InsertOne(ctx, doc, opts...)
 	if err != nil {
-		return nil, err
+		return primitive.NilObjectID, err
 	}
 
-	return result, nil
+	return result.InsertedID.(primitive.ObjectID), nil
 }
 
 // Get wraps the mongo driver `FindOne` method

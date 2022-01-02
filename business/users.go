@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/classic-massok/classic-massok-be/data/mongo"
-	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
+	cmmongo "github.com/classic-massok/classic-massok-be/data/cm-mongo"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/gommon/random"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const userResource ResourceRole = "users.%s.%s"
 
 // NewUsersBiz is the constructure for the users business layers
-func NewUsersBiz() *usersBiz {
-	data, err := mongo.NewUsersData(cmmongo.Database)
+func NewUsersBiz(db *mongo.Database) *usersBiz {
+	data, err := cmmongo.NewUsersData(db)
 	if err != nil {
 		panic(fmt.Sprintf("error constructing users biz: %v", err))
 	}
@@ -49,7 +49,7 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 		return "", err
 	}
 
-	return u.data.New(ctx, loggedInUserID, mongo.User{
+	return u.data.New(ctx, loggedInUserID, cmmongo.User{
 		CusKey:    random.String(15),
 		Email:     user.Email,
 		Password:  hashedPassword,
@@ -118,7 +118,7 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 }
 
 func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit UserEdit) (*User, error) {
-	mongoUserEdit := mongo.UserEdit{
+	mongoUserEdit := cmmongo.UserEdit{
 		Email:     userEdit.Email,
 		FirstName: userEdit.FirstName,
 		LastName:  userEdit.LastName,
@@ -228,11 +228,11 @@ type UserEdit struct { // TODO: need to figure out adding/removing roles
 
 //counterfeiter:generate . usersData
 type usersData interface {
-	New(ctx context.Context, loggedInUserID string, user mongo.User) (string, error)
-	Get(ctx context.Context, id string) (*mongo.User, error)
-	GetByEmail(ctx context.Context, email string) (*mongo.User, error)
-	GetAll(ctx context.Context) ([]*mongo.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, edit mongo.UserEdit) (*mongo.User, error)
+	New(ctx context.Context, loggedInUserID string, user cmmongo.User) (string, error)
+	Get(ctx context.Context, id string) (*cmmongo.User, error)
+	GetByEmail(ctx context.Context, email string) (*cmmongo.User, error)
+	GetAll(ctx context.Context) ([]*cmmongo.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, edit cmmongo.UserEdit) (*cmmongo.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
 }
 

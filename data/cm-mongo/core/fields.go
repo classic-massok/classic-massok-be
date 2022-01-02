@@ -1,4 +1,4 @@
-package cmmongo
+package core
 
 import (
 	"time"

@@ -1,14 +1,11 @@
-package cmmongo
+package core
 
 import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-var Database = &mongo.Database{}
 
 type Creator interface {
 	SetOID(primitive.ObjectID)

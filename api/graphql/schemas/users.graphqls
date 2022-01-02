@@ -14,7 +14,7 @@ type User {
 }
 
 input UserInput {
-    id: ID! @loadResource(resourceType: "user")
+    id: ID! @loadResource(resourceType: "users")
 }
 
 input CreateUserInput {
@@ -33,7 +33,7 @@ type CreateUserOutput {
 }
 
 input UpdateUserInput {
-    id: ID! @loadResource(resourceType: "user")
+    id: ID! @loadResource(resourceType: "users")
     email: String
     password: String
     firstName: String
@@ -46,7 +46,7 @@ input UpdateUserInput {
 }
 
 input DeleteUserInput {
-     id: ID! @loadResource(resourceType: "user")
+     id: ID! @loadResource(resourceType: "users")
 }
 
 type DeleteUserOutput {

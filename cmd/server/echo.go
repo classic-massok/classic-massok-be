@@ -5,10 +5,11 @@ import (
 
 	"github.com/classic-massok/classic-massok-be/api"
 	"github.com/classic-massok/classic-massok-be/business"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func getEchoRouter() http.Handler { // TODO: figure out if setup of resource repo seem reasonable
-	userBiz := business.NewUsersBiz() // TODO: inject db connection through biz layers, figure out if we want to interface this
+func getEchoRouter(db *mongo.Database) http.Handler { // TODO: figure out if setup of resource repo seem reasonable
+	userBiz := business.NewUsersBiz(db) // TODO: inject db connection through biz layers, figure out if we want to interface this
 
 	resourceRepo := &business.ResourceRepo{
 		userBiz,

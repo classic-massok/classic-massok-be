@@ -7,7 +7,7 @@ import (
 
 // Resource types
 const (
-	UserResource = "user"
+	UsersResource = "users"
 )
 
 type ResourceRepo struct {
@@ -16,7 +16,7 @@ type ResourceRepo struct {
 
 func (r *ResourceRepo) Get(ctx context.Context, resourceType, resourceID string) (interface{}, error) {
 	switch resourceType {
-	case UserResource:
+	case UsersResource:
 		return r.User.Get(ctx, resourceID)
 	default:
 		return nil, fmt.Errorf("unknown resource type: %s", resourceType)

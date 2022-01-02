@@ -1,13 +1,12 @@
-package mongo
+package cmmongo
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/classic-massok/classic-massok-be/data/mongo/cmmongo"
+	"github.com/classic-massok/classic-massok-be/data/cm-mongo/core"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -21,13 +20,62 @@ func NewUsersData(db *mongo.Database) (*usersData, error) {
 	}
 
 	return &usersData{
-		coll: cmmongo.NewCollection(db.Collection(UsersCollection)),
+		coll: core.NewCollection(db.Collection(UsersCollection)),
 	}, nil
 }
 
 // usersData is the data layer that access the users db collection
 type usersData struct {
-	coll *cmmongo.Collection
+	coll *core.Collection
+}
+
+func (u *usersData) New(ctx context.Context, loggedInUserID string, user User) (string, error) {
+	result, err := u.coll.Insert(ctx, loggedInUserID, &user)
+	if err != nil {
+		return "", fmt.Errorf("error creating new user: %w", err)
+	}
+
+	return result.Hex(), nil
+}
+
+func (u *usersData) Get(ctx context.Context, id string) (*User, error) {
+	var user User
+	if err := u.coll.Get(ctx, id, &user); err != nil {
+		return nil, fmt.Errorf("error getting user: %w", err)
+	}
+
+	return &user, nil
+}
+
+func (u *usersData) GetByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	if err := u.coll.GetByFilter(ctx, bson.M{"email": email}, &user); err != nil {
+		return nil, fmt.Errorf("error getting user: %w", err)
+	}
+
+	return &user, nil
+}
+
+func (u *usersData) GetAll(ctx context.Context) ([]*User, error) {
+	var users Users
+	if err := u.coll.GetAll(ctx, bson.M{}, &users); err != nil {
+		return nil, fmt.Errorf("error getting all users: %w", err)
+	}
+
+	return users, nil
+}
+
+func (u *usersData) Edit(ctx context.Context, id, loggedInuserID string, user UserEdit) (*User, error) {
+	var updatedUser User
+	if err := u.coll.Edit(ctx, id, loggedInuserID, &user, &updatedUser); err != nil {
+		return nil, fmt.Errorf("error updating user: %w", err)
+	}
+
+	return &updatedUser, nil
+}
+
+func (u *usersData) Delete(ctx context.Context, id, loggedInUserID string) error {
+	return u.coll.Delete(ctx, id, loggedInUserID)
 }
 
 // Users represents an array of users
@@ -41,7 +89,7 @@ func (us Users) SetIDs() {
 
 // User represents the user db model
 type User struct {
-	cmmongo.ID `bson:",inline"`
+	core.ID `bson:",inline"`
 
 	// Required fields
 	CusKey    string `bson:"cusKey"`
@@ -56,7 +104,7 @@ type User struct {
 	CanSMS   *bool      `bson:"canSMS"`
 	Birthday *time.Time `bson:"birthday"`
 
-	cmmongo.Accounting `bson:",inline"`
+	core.Accounting `bson:",inline"`
 }
 
 type UserEdit struct {
@@ -108,51 +156,5 @@ func (ue *UserEdit) GetUpdate() bson.M {
 	return update
 }
 
-func (u *usersData) New(ctx context.Context, loggedInUserID string, user User) (string, error) {
-	result, err := u.coll.Insert(ctx, loggedInUserID, &user)
-	if err != nil {
-		return "", fmt.Errorf("error creating new user: %w", err)
-	}
-
-	return result.InsertedID.(primitive.ObjectID).Hex(), nil
-}
-
-func (u *usersData) Get(ctx context.Context, id string) (*User, error) {
-	var user User
-	if err := u.coll.Get(ctx, id, &user); err != nil {
-		return nil, fmt.Errorf("error getting user: %w", err)
-	}
-
-	return &user, nil
-}
-
-func (u *usersData) GetByEmail(ctx context.Context, email string) (*User, error) {
-	var user User
-	if err := u.coll.GetByFilter(ctx, bson.M{"email": email}, &user); err != nil {
-		return nil, fmt.Errorf("error getting user: %w", err)
-	}
-
-	return &user, nil
-}
-
-func (u *usersData) GetAll(ctx context.Context) ([]*User, error) {
-	var users Users
-	if err := u.coll.GetAll(ctx, bson.M{}, &users); err != nil {
-		return nil, fmt.Errorf("error getting all users: %w", err)
-	}
-
-	return users, nil
-}
-
-func (u *usersData) Edit(ctx context.Context, id, loggedInuserID string, user UserEdit) (*User, error) {
-	var updatedUser User
-	if err := u.coll.Edit(ctx, id, loggedInuserID, &user, &updatedUser); err != nil {
-		return nil, fmt.Errorf("error updating user: %w", err)
-	}
-
-	return &updatedUser, nil
-}
-
-func (u *usersData) Delete(ctx context.Context, id, loggedInUserID string) error {
-	return u.coll.Delete(ctx, id, loggedInUserID)
+type collectionCreator interface {
 }

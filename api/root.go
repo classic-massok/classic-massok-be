@@ -18,8 +18,10 @@ type Router struct {
 	UsersBiz usersBiz
 }
 
-func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz) http.Handler {
+func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz) http.Handler { // TODO: should this be "Set" or "Get"
 	e := echo.New()
+	e.IPExtractor = echo.ExtractIPDirect()
+
 	authnMW := r.getAuthnMW()
 
 	e.Use(authnMW.ValidateToken)
@@ -68,6 +70,8 @@ func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := context.WithValue(c.Request().Context(), "EchoContext", c)
 		c.SetRequest(c.Request().WithContext(ctx))
+
+		ctx = context.WithValue(ctx, "IPAdress", c.Echo().IPExtractor(c.Request()))
 		return next(c)
 	}
 }
