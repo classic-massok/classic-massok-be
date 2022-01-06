@@ -26,7 +26,7 @@ type authzMW interface {
 }
 
 type usersBiz interface {
-	Authn(ctx context.Context, email, password string) (string, string, error)
+	Authn(ctx context.Context, email, password string) (string, map[string]string, error)
 	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
 	Get(ctx context.Context, id string) (*business.User, error)
 	GetAll(ctx context.Context) ([]*business.User, error)

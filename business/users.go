@@ -14,6 +14,11 @@ import (
 
 const userResource ResourceRole = "users.%s.%s"
 
+const (
+	cusKeysKey  = "CusKeys"
+	ipAdressKey = "IPAddress"
+)
+
 // NewUsersBiz is the constructure for the users business layers
 func NewUsersBiz(db *mongo.Database) *usersBiz {
 	data, err := cmmongo.NewUsersData(db)
@@ -29,16 +34,23 @@ type usersBiz struct {
 	data usersData
 }
 
-func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, string, error) {
+func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, map[string]string, error) {
 	mongoUser, err := u.data.GetByEmail(ctx, email)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
-	return mongoUser.GetID(), mongoUser.CusKey, bcrypt.CompareHashAndPassword(mongoUser.Password, []byte(password))
+	return mongoUser.GetID(), mongoUser.CusKeys, bcrypt.CompareHashAndPassword(mongoUser.Password, []byte(password))
 }
 
 func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user User) (string, error) {
+	if user.Roles == nil {
+		user.Roles = Roles{}
+	}
+
+	user.Roles = append(user.Roles, "users.user.self")
+	user.Roles.DeDupe()
+
 	if err := user.Roles.Validate(); err != nil {
 		return "", err
 	}
@@ -50,7 +62,7 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 	}
 
 	return u.data.New(ctx, loggedInUserID, cmmongo.User{
-		CusKey:    random.String(15),
+		CusKeys:   map[string]string{ctx.Value(ipAdressKey).(string): random.String(15)},
 		Email:     user.Email,
 		Password:  hashedPassword,
 		FirstName: user.FirstName,
@@ -70,7 +82,7 @@ func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
 
 	return &User{
 		mongoUser.GetID(),
-		mongoUser.CusKey,
+		mongoUser.CusKeys,
 		mongoUser.Email,
 		mongoUser.FirstName,
 		mongoUser.LastName,
@@ -97,7 +109,7 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 	for i, mongoUser := range mongoUsers {
 		users[i] = &User{
 			mongoUser.GetID(),
-			mongoUser.CusKey,
+			mongoUser.CusKeys,
 			mongoUser.Email,
 			mongoUser.FirstName,
 			mongoUser.LastName,
@@ -134,14 +146,14 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 			return nil, err
 		}
 
-		mongoUserEdit.Password = &hashedPassword
+		mongoUserEdit.Password = hashedPassword
 	} else {
 		mongoUserEdit.Password = nil
 	}
 
 	if userEdit.Password != nil || updateCusKey {
-		newCusKey := random.String(15)
-		mongoUserEdit.CusKey = &newCusKey
+		mongoUserEdit.CusKeys = ctx.Value(cusKeysKey).(map[string]string)
+		mongoUserEdit.CusKeys[ctx.Value(ipAdressKey).(string)] = random.String(15)
 	}
 
 	if userEdit.Roles != nil {
@@ -149,7 +161,10 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 			return nil, err
 		}
 
-		mongoUserEdit.Roles = (*[]string)(&userEdit.Roles)
+		userEdit.Roles.DeDupe()
+		mongoUserEdit.Roles = ([]string)(userEdit.Roles)
+	} else {
+		userEdit.Roles = []string{}
 	}
 
 	mongoUser, err := u.data.Edit(ctx, id, loggedInUserID, mongoUserEdit)
@@ -159,7 +174,7 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 
 	return &User{
 		mongoUser.GetID(),
-		mongoUser.CusKey,
+		mongoUser.CusKeys,
 		mongoUser.Email,
 		mongoUser.FirstName,
 		mongoUser.LastName,
@@ -182,7 +197,7 @@ func (u *usersBiz) Delete(ctx context.Context, id, loggedInUserID string) error 
 
 type User struct {
 	id        string
-	cusKey    string
+	cusKeys   map[string]string
 	Email     string
 	FirstName string
 	LastName  string
@@ -211,8 +226,12 @@ func (u *User) GetID() string {
 	return u.id
 }
 
-func (u *User) GetCusKey() string {
-	return u.cusKey
+func (u *User) GetCusKey(ipAdress string) string {
+	return u.cusKeys[ipAdress]
+}
+
+func (u *User) GetCusKeys() map[string]string {
+	return u.cusKeys
 }
 
 type UserEdit struct { // TODO: need to figure out adding/removing roles

@@ -10,31 +10,32 @@ import (
 )
 
 func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*graphqlmodels.AuthOutput, error) {
-	userID, cusKey, err := m.UsersBiz.Authn(ctx, input.Email, input.Password)
+	c, err := echoContextFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error logging in: %w", err)
+	}
+
+	userID, cusKeys, err := m.UsersBiz.Authn(ctx, input.Email, input.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
+	c.Set(authn.UserIDKey, userID) // TODO: Do we need to do this? maybe for loggiing?
+	ctx = context.WithValue(ctx, authn.CusKeysKey, cusKeys)
+
+	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
 	if err != nil {
-		return nil, fmt.Errorf("error generating refresh token: %w", err)
+		return nil, fmt.Errorf("error logging in: %w", err)
 	}
 
 	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(userID)
 	if err != nil {
-		return nil, fmt.Errorf("error generating access token: %w", err)
+		return nil, fmt.Errorf("error logging in: %w", err)
 	}
 
-	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(userID, cusKey)
+	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(userID, bizUser.GetCusKey(ctx.Value("IPAddress").(string)))
 	if err != nil {
-		return nil, fmt.Errorf("error generating access token: %w", err)
-	}
-
-	c, err := echoContextFromContext(ctx)
-	if err != nil {
-		// log error here
-	} else {
-		c.Set(authn.UserIDKey, userID)
+		return nil, fmt.Errorf("error logging in: %w", err)
 	}
 
 	return &graphqlmodels.AuthOutput{
@@ -46,7 +47,7 @@ func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*
 func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput, error) {
 	c, err := echoContextFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error generating refresh token: %w", err)
+		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
 	tokenType := c.Get(authn.TokenTypeKey).(string)
@@ -55,20 +56,21 @@ func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput,
 	}
 
 	userID := c.Get(authn.UserIDKey).(string) // TODO: is this safe?
+	ctx = context.WithValue(ctx, authn.CusKeysKey, c.Get(authn.CusKeysKey))
 
 	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
 	if err != nil {
-		return nil, fmt.Errorf("error generating refresh token: %w", err)
+		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
 	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(bizUser.GetID())
 	if err != nil {
-		return nil, fmt.Errorf("error generating access token: %w", err)
+		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
-	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(userID, bizUser.GetCusKey())
+	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(userID, bizUser.GetCusKey(c.Echo().IPExtractor(c.Request())))
 	if err != nil {
-		return nil, fmt.Errorf("error generating access token: %w", err)
+		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
 	return &graphqlmodels.AuthOutput{

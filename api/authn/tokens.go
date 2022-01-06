@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	AccessTokenType  = "access"
-	RefreshTokenType = "refresh"
+	AccessTokenType  = "Access"
+	RefreshTokenType = "Refresh"
 )
 
 func GenerateAccessToken(userID string) (string, int64, error) {

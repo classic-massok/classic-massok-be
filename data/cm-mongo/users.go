@@ -92,11 +92,11 @@ type User struct {
 	core.ID `bson:",inline"`
 
 	// Required fields
-	CusKey    string `bson:"cusKey"`
-	Email     string `bson:"email"`
-	Password  []byte `bson:"password"` // hashed
-	FirstName string `bson:"firstName"`
-	LastName  string `bson:"lastName"`
+	CusKeys   map[string]string `bson:"cusKeys"` // mapped by ip address
+	Email     string            `bson:"email"`
+	Password  []byte            `bson:"password"` // hashed
+	FirstName string            `bson:"firstName"`
+	LastName  string            `bson:"lastName"`
 
 	// Optional fields
 	Roles    []string   `bson:"roles"`
@@ -108,12 +108,12 @@ type User struct {
 }
 
 type UserEdit struct {
-	CusKey    *string
+	CusKeys   map[string]string
 	Email     *string
-	Password  *[]byte
+	Password  []byte
 	FirstName *string
 	LastName  *string
-	Roles     *[]string
+	Roles     []string
 	Phone     *string
 	CanSMS    *bool
 	Birthday  *time.Time
@@ -121,12 +121,16 @@ type UserEdit struct {
 
 func (ue *UserEdit) GetUpdate() bson.M {
 	update := bson.M{}
-	if ue.CusKey != nil {
-		update["cusKey"] = *ue.CusKey
+	if ue.CusKeys != nil {
+		update["cusKeys"] = ue.CusKeys
 	}
 
 	if ue.Email != nil {
 		update["email"] = *ue.Email
+	}
+
+	if ue.Password != nil {
+		update["password"] = ue.Password
 	}
 
 	if ue.FirstName != nil {
@@ -138,7 +142,7 @@ func (ue *UserEdit) GetUpdate() bson.M {
 	}
 
 	if ue.Roles != nil {
-		update["roles"] = *ue.Roles
+		update["roles"] = ue.Roles
 	}
 
 	if ue.Phone != nil {

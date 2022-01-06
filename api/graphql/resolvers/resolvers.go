@@ -9,6 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const echoContextKey = "EchoContext"
+
 type Resolver struct {
 	UsersBiz usersBiz
 }
@@ -28,7 +30,7 @@ type mutation struct{ *Resolver }
 type query struct{ *Resolver }
 
 func echoContextFromContext(ctx context.Context) (echo.Context, error) {
-	echoContext := ctx.Value("EchoContext")
+	echoContext := ctx.Value(echoContextKey)
 	if echoContext == nil {
 		err := fmt.Errorf("could not retrieve echo.Context")
 		return nil, err
@@ -43,7 +45,7 @@ func echoContextFromContext(ctx context.Context) (echo.Context, error) {
 }
 
 type usersBiz interface {
-	Authn(ctx context.Context, email, password string) (string, string, error)
+	Authn(ctx context.Context, email, password string) (string, map[string]string, error)
 	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
 	Get(ctx context.Context, id string) (*business.User, error)
 	GetAll(ctx context.Context) ([]*business.User, error)

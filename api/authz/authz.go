@@ -21,7 +21,7 @@ func LoadResource(c echo.Context, bizRepo resourceGetter, resourceType, resource
 		return errNotFound
 	}
 
-	c.Set("resource", resource)
+	c.Set(resourceKey, resource)
 	return nil
 }
 
@@ -30,15 +30,21 @@ func RequiresPermission(c echo.Context, aclBiz accessAllower, action string) err
 	if rolesVal == nil {
 		return errUnauthorized
 	}
-
 	roles := rolesVal.(business.Roles)
+
+	userIDVal := c.Get(authn.UserIDKey)
+	if userIDVal == nil {
+		return errUnauthorized
+	}
+	userID := userIDVal.(string)
+
 	resource := c.Get(resourceKey)
 
 	if len(roles) == 0 {
 		return errForbidden
 	}
 
-	allowed, err := aclBiz.AccessAllowed(c.Request().Context(), roles, resource, action)
+	allowed, err := aclBiz.AccessAllowed(c.Request().Context(), resource, action, userID, roles)
 	if err != nil {
 		// TODO: log this
 		return errors.Wrap(errServerError, err.Error()) // TODO: is this the right order of errors?

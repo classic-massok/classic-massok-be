@@ -9,12 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Resource refs
-const (
-	AllResources = "*"
-	SelfResource = "self"
-)
-
 // Application Scope types
 const (
 	appScopeGlobal ApplicationScope = "global"
@@ -30,6 +24,7 @@ const (
 // Default roles
 const (
 	globalAdmin = "global.admin"
+	userSelf    = "users.user.self"
 )
 
 func NewACLBiz(verbose bool, resourceRepoBiz resourceRepoBiz) *aclBiz {
@@ -49,7 +44,7 @@ type ACE struct {
 	Actions lib.StringSet
 }
 
-func (a *aclBiz) AccessAllowed(ctx context.Context, roles Roles, resource interface{}, action string) (bool, error) {
+func (a *aclBiz) AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles Roles) (bool, error) {
 	if resource == nil {
 		resource = &RootACL{}
 	}
@@ -62,6 +57,13 @@ func (a *aclBiz) AccessAllowed(ctx context.Context, roles Roles, resource interf
 				for _, role := range roles {
 					if role == globalAdmin {
 						return true, nil
+					}
+
+					switch role {
+					case globalAdmin:
+						return true, nil
+					case userSelf:
+						role = strings.Replace(role, "self", userID, 1)
 					}
 
 					if !aclItem.Roles.HasRole(role) {
@@ -205,6 +207,20 @@ func (r Roles) RemoveRole(role string) bool {
 	}
 
 	return false
+}
+
+func (r *Roles) DeDupe() {
+	exists := map[string]struct{}{}
+	deduped := Roles{}
+
+	for _, role := range *r {
+		if _, ok := exists[role]; !ok {
+			exists[role] = struct{}{}
+			deduped = append(deduped, role)
+		}
+	}
+
+	*r = deduped
 }
 
 // TODO: do we need this?

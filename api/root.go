@@ -13,6 +13,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	echoContextKey = "EchoContext"
+	ipAdressKey    = "IPAddress"
+)
+
 type Router struct {
 	ACLBiz   aclBiz
 	UsersBiz usersBiz
@@ -68,16 +73,15 @@ func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz) *graphql.GraphQL {
 
 func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		ctx := context.WithValue(c.Request().Context(), "EchoContext", c)
+		ctx := context.WithValue(c.Request().Context(), echoContextKey, c)
+		ctx = context.WithValue(ctx, ipAdressKey, c.Echo().IPExtractor(c.Request()))
 		c.SetRequest(c.Request().WithContext(ctx))
-
-		ctx = context.WithValue(ctx, "IPAdress", c.Echo().IPExtractor(c.Request()))
 		return next(c)
 	}
 }
 
 func EchoContextFromContext(ctx context.Context) (echo.Context, error) {
-	echoContext := ctx.Value("EchoContext")
+	echoContext := ctx.Value(echoContextKey)
 	if echoContext == nil {
 		err := fmt.Errorf("could not retrieve echo.Context")
 		return nil, err
@@ -92,7 +96,7 @@ func EchoContextFromContext(ctx context.Context) (echo.Context, error) {
 }
 
 type aclBiz interface {
-	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}, action string) (bool, error)
+	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles business.Roles) (bool, error)
 }
 
 type resourceRepoBiz interface {
@@ -100,7 +104,7 @@ type resourceRepoBiz interface {
 }
 
 type usersBiz interface {
-	Authn(ctx context.Context, email, password string) (string, string, error)
+	Authn(ctx context.Context, email, password string) (string, map[string]string, error)
 	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
 	Get(ctx context.Context, id string) (*business.User, error)
 	GetAll(ctx context.Context) ([]*business.User, error)

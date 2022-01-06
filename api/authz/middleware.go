@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const resourceKey = "resource"
+const resourceKey = "Resource"
 
 type AuthzMW struct {
 	ACLBiz          accessAllower
@@ -51,5 +51,5 @@ type resourceGetter interface {
 }
 
 type accessAllower interface {
-	AccessAllowed(ctx context.Context, roles business.Roles, resource interface{}, action string) (bool, error)
+	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles business.Roles) (bool, error)
 }
