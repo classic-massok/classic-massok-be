@@ -101,7 +101,7 @@ func getLoggedInUserOID(loggedInUserID string) primitive.ObjectID {
 	loggedInUserOID, err := primitive.ObjectIDFromHex(loggedInUserID)
 	if err != nil {
 		return primitive.NilObjectID
-		// LOG THIS fmt.Errorf("error converting loggedInUserID string %q to object id: %w", loggedInUserID, err)
+		// TODO: log this fmt.Errorf("error converting loggedInUserID string %q to object id: %w", loggedInUserID, err)
 	}
 
 	return loggedInUserOID

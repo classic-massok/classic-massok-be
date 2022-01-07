@@ -50,12 +50,22 @@ func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput,
 		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
-	tokenType := c.Get(authn.TokenTypeKey).(string)
+	tokenTypeVal := c.Get(authn.TokenTypeKey)
+	if tokenTypeVal == nil {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	tokenType := tokenTypeVal.(string)
 	if tokenType != authn.RefreshTokenType {
 		return nil, fmt.Errorf("forbidden")
 	}
 
-	userID := c.Get(authn.UserIDKey).(string) // TODO: is this safe?
+	userIDVal := c.Get(authn.UserIDKey)
+	if userIDVal == nil {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	userID := userIDVal.(string)
 	ctx = context.WithValue(ctx, authn.CusKeysKey, c.Get(authn.CusKeysKey))
 
 	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})

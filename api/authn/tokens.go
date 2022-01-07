@@ -59,7 +59,7 @@ func generateToken(permFileName string, claims jwt.Claims) (string, error) {
 		return "", fmt.Errorf("error generating token: %w", err)
 	}
 
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEMWithPassword(signBytes, "local") // abstract password from this
+	signKey, err := jwt.ParseRSAPrivateKeyFromPEMWithPassword(signBytes, "local") // TODO: abstract password from this
 	if err != nil {
 		return "", fmt.Errorf("error generating token: %w", err)
 	}

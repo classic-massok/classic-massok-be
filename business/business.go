@@ -7,12 +7,11 @@ import (
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 type accounting struct {
-	// Unix timestamp of Entry creation time
+	// Unix timestamp of Entry creation/update time
 	createdAt time.Time
-	// Unix timestamp of last Entry update
 	updatedAt time.Time
 
-	// TODO: userID of creator/updater
+	// UserID of creator/updater
 	createdBy string
 	updatedBy string
 }

@@ -30,9 +30,8 @@ func (i *ID) GetID() string {
 }
 
 type Accounting struct {
-	// Datetime of Entry creation time
+	// Datetime of Entry creation/update time
 	CreatedAt time.Time `bson:"createdAt"`
-	// Datetime of last Entry update
 	UpdatedAt time.Time `bson:"updatedAt"`
 
 	// TODO: userID of creator/updater

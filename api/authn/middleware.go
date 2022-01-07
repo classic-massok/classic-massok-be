@@ -39,13 +39,11 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 		if !ok || !token.Valid || claims.UserID == "" || claims.TokenType != AccessTokenType ||
 			time.Now().After(time.Unix(claims.ExpiresAt, 0)) || claims.Issuer != "classic-massok.auth.service" {
 			return next(c)
-			// return fmt.Errorf("invalid token: authentication failed")
 		}
 
 		user, err := a.UsersBiz.Get(c.Request().Context(), claims.UserID)
 		if err != nil {
 			return next(c)
-			// return fmt.Errorf("invalid token: authentication failed")
 		}
 
 		c.Set(UserIDKey, user.GetID())
@@ -62,24 +60,20 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 	})
 	if err != nil {
 		return next(c)
-		// return err
 	}
 
 	claims, ok := token.Claims.(*tokenClaims)
 	if !ok || !token.Valid || claims.UserID == "" || claims.TokenType != RefreshTokenType || time.Now().After(time.Unix(claims.ExpiresAt, 0)) {
 		return next(c)
-		// return fmt.Errorf("invalid token: authentication failed")
 	}
 
 	user, err := a.UsersBiz.Get(c.Request().Context(), claims.UserID)
 	if err != nil {
 		return next(c)
-		// return fmt.Errorf("invalid token: authentication failed")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(claims.CusKey), []byte(user.GetCusKey(c.Echo().IPExtractor(c.Request())))); err != nil {
 		return next(c)
-		// return fmt.Errorf("invalid token: authentication failed")
 	}
 
 	c.Set(UserIDKey, user.GetID())

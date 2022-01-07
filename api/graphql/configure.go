@@ -16,7 +16,7 @@ import (
 
 type GraphQL struct {
 	ACLBiz          accessAllower
-	ResourceRepoBiz resourceRepoBiz // TODO: interface this
+	ResourceRepoBiz resourceRepoBiz
 	UsersBiz        usersBiz
 }
 

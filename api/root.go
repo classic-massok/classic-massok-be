@@ -80,7 +80,7 @@ func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func EchoContextFromContext(ctx context.Context) (echo.Context, error) {
+func echoContextFromContext(ctx context.Context) (echo.Context, error) {
 	echoContext := ctx.Value(echoContextKey)
 	if echoContext == nil {
 		err := fmt.Errorf("could not retrieve echo.Context")

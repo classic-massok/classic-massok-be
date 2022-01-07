@@ -54,7 +54,7 @@ func main() {
 	}
 }
 
-func serveHTTP(echoRouter http.Handler) error {
+func serveHTTP(echoRouter http.Handler) error { // TODO: make this configurable
 	handler := createHandler(echoRouter.ServeHTTP)
 	port := ":8080"
 

@@ -15,7 +15,7 @@ const (
 	appScopeUsers  ApplicationScope = "users"
 )
 
-// User Role types (ADD PERM DEFS)
+// User Role types (TODO: add permission definitions here)
 const (
 	roleTypeAdmin RoleType = "admin"
 	roleTypeUser  RoleType = "user"
@@ -110,7 +110,7 @@ func (a ApplicationScope) Validate() error {
 	case appScopeGlobal:
 	case appScopeUsers:
 	default:
-		// log what was input here
+		// TODO: log what was input here
 		return fmt.Errorf("invalid application scope provided")
 	}
 
@@ -128,7 +128,7 @@ func (r RoleType) Validate() error {
 	case roleTypeAdmin:
 	case roleTypeUser:
 	default:
-		// log what was input here
+		// TODO: log what was input here
 		return fmt.Errorf("invalid role type provided")
 	}
 
@@ -209,7 +209,7 @@ func (r Roles) RemoveRole(role string) bool {
 	return false
 }
 
-func (r *Roles) DeDupe() {
+func (r *Roles) DeDupe() { // TODO:  use stringset here
 	exists := map[string]struct{}{}
 	deduped := Roles{}
 

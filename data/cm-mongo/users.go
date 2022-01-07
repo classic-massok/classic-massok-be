@@ -159,6 +159,3 @@ func (ue *UserEdit) GetUpdate() bson.M {
 
 	return update
 }
-
-type collectionCreator interface {
-}
