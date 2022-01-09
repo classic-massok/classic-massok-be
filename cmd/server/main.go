@@ -24,7 +24,7 @@ func main() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:5555"))
+			client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:5555")) // TODO: make this configurable
 			if err != nil {
 				return fmt.Errorf("error creating mongo client: %w", err)
 			}

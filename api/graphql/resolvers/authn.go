@@ -7,6 +7,7 @@ import (
 	"github.com/classic-massok/classic-massok-be/api/authn"
 	graphqlmodels "github.com/classic-massok/classic-massok-be/api/graphql/models"
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/lib"
 )
 
 func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*graphqlmodels.AuthOutput, error) {
@@ -20,8 +21,8 @@ func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*
 		return nil, err
 	}
 
-	c.Set(authn.UserIDKey, userID) // TODO: Do we need to do this? maybe for loggiing?
-	ctx = context.WithValue(ctx, authn.CusKeysKey, cusKeys)
+	c.Set(lib.UserIDKey, userID) // TODO: Do we need to do this? maybe for loggiing?
+	ctx = context.WithValue(ctx, lib.CusKeysKey, cusKeys)
 
 	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
 	if err != nil {
@@ -50,7 +51,7 @@ func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput,
 		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
-	tokenTypeVal := c.Get(authn.TokenTypeKey)
+	tokenTypeVal := c.Get(lib.TokenTypeKey)
 	if tokenTypeVal == nil {
 		return nil, fmt.Errorf("unauthorized")
 	}
@@ -60,13 +61,13 @@ func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput,
 		return nil, fmt.Errorf("forbidden")
 	}
 
-	userIDVal := c.Get(authn.UserIDKey)
+	userIDVal := c.Get(lib.UserIDKey)
 	if userIDVal == nil {
 		return nil, fmt.Errorf("unauthorized")
 	}
 
 	userID := userIDVal.(string)
-	ctx = context.WithValue(ctx, authn.CusKeysKey, c.Get(authn.CusKeysKey))
+	ctx = context.WithValue(ctx, lib.CusKeysKey, c.Get(lib.CusKeysKey))
 
 	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
 	if err != nil {

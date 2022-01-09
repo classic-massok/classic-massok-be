@@ -12,12 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const userResource ResourceRole = "users.%s.%s"
-
-const (
-	cusKeysKey  = "CusKeys"
-	ipAdressKey = "IPAddress"
-)
+const userRole ResourceRole = "users.%s.%s"
 
 // NewUsersBiz is the constructure for the users business layers
 func NewUsersBiz(db *mongo.Database) *usersBiz {
@@ -48,7 +43,7 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 		user.Roles = Roles{}
 	}
 
-	user.Roles = append(user.Roles, "users.user.self")
+	user.Roles = append(user.Roles, userSelf)
 	user.Roles.DeDupe()
 
 	if err := user.Roles.Validate(); err != nil {
@@ -62,7 +57,7 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 	}
 
 	return u.data.New(ctx, loggedInUserID, cmmongo.User{
-		CusKeys:   map[string]string{ctx.Value(ipAdressKey).(string): random.String(15)},
+		CusKeys:   map[string]string{ctx.Value(lib.IPAddressKey).(string): random.String(15)},
 		Email:     user.Email,
 		Password:  hashedPassword,
 		FirstName: user.FirstName,
@@ -152,8 +147,8 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 	}
 
 	if userEdit.Password != nil || updateCusKey {
-		mongoUserEdit.CusKeys = ctx.Value(cusKeysKey).(map[string]string)
-		mongoUserEdit.CusKeys[ctx.Value(ipAdressKey).(string)] = random.String(15)
+		mongoUserEdit.CusKeys = ctx.Value(lib.CusKeysKey).(map[string]string)
+		mongoUserEdit.CusKeys[ctx.Value(lib.IPAddressKey).(string)] = random.String(15)
 	}
 
 	if userEdit.Roles != nil {
@@ -212,7 +207,7 @@ func (u *User) acl() ACL {
 	return ACL{
 		{
 			Roles: Roles{
-				userResource.Populate(roleTypeUser, u.id),
+				userRole.Populate(roleTypeUser, u.id),
 			},
 			Actions: lib.NewStringset(
 				"user.read",

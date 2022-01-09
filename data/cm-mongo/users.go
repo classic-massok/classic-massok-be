@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// UsersCollection represents the name for the users collection
-const UsersCollection = "users"
+// usersCollection represents the name for the users collection
+const usersCollection = "users"
 
 // NewUsersData is the constructor for the users data layer
 func NewUsersData(db *mongo.Database) (*usersData, error) {
@@ -20,7 +20,7 @@ func NewUsersData(db *mongo.Database) (*usersData, error) {
 	}
 
 	return &usersData{
-		coll: core.NewCollection(db.Collection(UsersCollection)),
+		coll: core.NewCollection(db.Collection(usersCollection)),
 	}, nil
 }
 

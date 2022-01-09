@@ -6,6 +6,7 @@ import (
 
 	"github.com/classic-massok/classic-massok-be/api/core"
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
 )
 
@@ -33,9 +34,9 @@ func (a *AuthzMW) RequiresPermission(action string) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			switch err := RequiresPermission(c, a.ACLBiz, action); err {
 			case nil:
-			case errUnauthorized:
+			case lib.ErrUnauthorized:
 				return core.JSON(c, 401, nil, err)
-			case errForbidden:
+			case lib.ErrForbidden:
 				return core.JSON(c, 403, nil, err)
 			default:
 				return core.JSON(c, 500, nil, fmt.Errorf("server error: %w", err))

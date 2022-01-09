@@ -6,10 +6,9 @@ import (
 
 	"github.com/classic-massok/classic-massok-be/api/graphql/generated"
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
 )
-
-const echoContextKey = "EchoContext"
 
 type Resolver struct {
 	UsersBiz usersBiz
@@ -30,7 +29,7 @@ type mutation struct{ *Resolver }
 type query struct{ *Resolver }
 
 func echoContextFromContext(ctx context.Context) (echo.Context, error) {
-	echoContext := ctx.Value(echoContextKey)
+	echoContext := ctx.Value(lib.EchoContextKey)
 	if echoContext == nil {
 		err := fmt.Errorf("could not retrieve echo.Context")
 		return nil, err

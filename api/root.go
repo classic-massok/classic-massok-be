@@ -10,12 +10,8 @@ import (
 	"github.com/classic-massok/classic-massok-be/api/graphql"
 	"github.com/classic-massok/classic-massok-be/api/rest"
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
-)
-
-const (
-	echoContextKey = "EchoContext"
-	ipAdressKey    = "IPAddress"
 )
 
 type Router struct {
@@ -73,15 +69,15 @@ func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz) *graphql.GraphQL {
 
 func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		ctx := context.WithValue(c.Request().Context(), echoContextKey, c)
-		ctx = context.WithValue(ctx, ipAdressKey, c.Echo().IPExtractor(c.Request()))
+		ctx := context.WithValue(c.Request().Context(), lib.EchoContextKey, c)
+		ctx = context.WithValue(ctx, lib.IPAddressKey, c.Echo().IPExtractor(c.Request()))
 		c.SetRequest(c.Request().WithContext(ctx))
 		return next(c)
 	}
 }
 
 func echoContextFromContext(ctx context.Context) (echo.Context, error) {
-	echoContext := ctx.Value(echoContextKey)
+	echoContext := ctx.Value(lib.EchoContextKey)
 	if echoContext == nil {
 		err := fmt.Errorf("could not retrieve echo.Context")
 		return nil, err

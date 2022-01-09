@@ -5,16 +5,10 @@ import (
 	"time"
 
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
-)
-
-const (
-	UserIDKey    = "UserID"
-	RolesKey     = "Roles"
-	CusKeysKey   = "CusKeys"
-	TokenTypeKey = "TokenType"
 )
 
 type AuthnMW struct {
@@ -46,10 +40,10 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return next(c)
 		}
 
-		c.Set(UserIDKey, user.GetID())
-		c.Set(RolesKey, user.Roles)
-		c.Set(CusKeysKey, user.GetCusKeys())
-		c.Set(TokenTypeKey, claims.TokenType)
+		c.Set(lib.UserIDKey, user.GetID())
+		c.Set(lib.RolesKey, user.Roles)
+		c.Set(lib.CusKeysKey, user.GetCusKeys())
+		c.Set(lib.TokenTypeKey, claims.TokenType)
 		return next(c)
 	}
 }
@@ -76,9 +70,9 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 		return next(c)
 	}
 
-	c.Set(UserIDKey, user.GetID())
-	c.Set(TokenTypeKey, claims.TokenType)
-	c.Set(CusKeysKey, user.GetCusKeys())
+	c.Set(lib.UserIDKey, user.GetID())
+	c.Set(lib.TokenTypeKey, claims.TokenType)
+	c.Set(lib.CusKeysKey, user.GetCusKeys())
 	return next(c)
 }
 
