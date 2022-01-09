@@ -2,11 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"time"
 
+	"github.com/classic-massok/classic-massok-be/api/core"
+	"github.com/classic-massok/classic-massok-be/config"
+	"github.com/classic-massok/classic-massok-be/lib"
+	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,6 +21,12 @@ import (
 )
 
 func main() {
+	cfg, err := config.RenderConfig()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	rootCmd := &cobra.Command{
 		Use:   "server",
 		Short: "Classic Massok BE",
@@ -24,7 +36,7 @@ func main() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:5555")) // TODO: make this configurable
+			client, err := mongo.Connect(ctx, options.Client().ApplyURI(fmt.Sprintf("%s:%d", cfg.Database.URI, cfg.Database.Port)))
 			if err != nil {
 				return fmt.Errorf("error creating mongo client: %w", err)
 			}
@@ -33,10 +45,10 @@ func main() {
 				return fmt.Errorf("error connecting to mongo: %w", err)
 			}
 
-			db := client.Database("classic-massok")
+			db := client.Database(cfg.Database.Name)
 
 			go func() {
-				err := serveHTTP(getEchoRouter(db))
+				err := serveHTTP(getEchoRouter(db), cfg)
 				errChan <- err
 			}()
 
@@ -48,15 +60,19 @@ func main() {
 		},
 	}
 
-	if err := rootCmd.Execute(); err != nil {
+	if err = rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func serveHTTP(echoRouter http.Handler) error { // TODO: make this configurable
-	handler := createHandler(echoRouter.ServeHTTP)
-	port := ":8080"
+func serveHTTP(echoRouter http.Handler, cfg *config.Config) error {
+	handler := createHandler(
+		echoRouter.ServeHTTP, cfg,
+		panicsReturn500,
+	)
+
+	port := fmt.Sprintf(":%d", cfg.Server.Port)
 
 	server := &http.Server{
 		Addr:           port,
@@ -78,9 +94,36 @@ func serveHTTP(echoRouter http.Handler) error { // TODO: make this configurable
 	return nil
 }
 
-func createHandler(handler http.HandlerFunc, middleware ...func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
+func panicsReturn500(next http.HandlerFunc, cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		defer func() {
+			if r := recover(); r != nil {
+				// TODO: create logger for errors and log stack traces
+				var trace interface{}
+				if cfg.Logging.Panics {
+					trace = string(debug.Stack())
+				}
+
+				data, err := json.Marshal(core.JSON(req.Context().Value(lib.EchoContextKey).(echo.Context), 500, trace, "internal server error"))
+				if err != nil {
+					// TODO: log error returning panic 500 here
+					return
+				}
+
+				if _, err = w.Write(data); err != nil {
+					// TODO: log error writing http error response
+					return
+				}
+			}
+		}()
+
+		next(w, req)
+	}
+}
+
+func createHandler(handler http.HandlerFunc, cfg *config.Config, middleware ...func(fn http.HandlerFunc, cfg *config.Config) http.HandlerFunc) http.HandlerFunc {
 	for index := range middleware {
-		handler = middleware[len(middleware)-index-1](handler)
+		handler = middleware[len(middleware)-index-1](handler, cfg)
 	}
 	return handler
 }
