@@ -66,9 +66,11 @@ func (g *GraphQL) graphqlMain(c echo.Context) error {
 	)
 
 	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) error {
-		fmt.Fprintln(os.Stderr, err)
-		fmt.Fprintln(os.Stderr)
-		debug.PrintStack()
+		if g.Cfg.Logging.StdOutPanics {
+			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr)
+			debug.PrintStack()
+		}
 
 		if g.Cfg.Logging.HTTPVerbose {
 			return fmt.Errorf("%w: %s\n\n%s", lib.ErrServerError, err, string(debug.Stack()))

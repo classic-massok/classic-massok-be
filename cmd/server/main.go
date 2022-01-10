@@ -98,6 +98,12 @@ func panicsReturn500(next http.HandlerFunc, cfg *config.Config) http.HandlerFunc
 	return func(w http.ResponseWriter, req *http.Request) {
 		defer func() {
 			if r := recover(); r != nil {
+				if cfg.Logging.StdOutPanics {
+					fmt.Fprintln(os.Stderr, r)
+					fmt.Fprintln(os.Stderr)
+					debug.PrintStack()
+				}
+
 				// TODO: create logger for errors and log stack traces
 				var trace interface{}
 				if cfg.Logging.HTTPVerbose {
@@ -115,8 +121,6 @@ func panicsReturn500(next http.HandlerFunc, cfg *config.Config) http.HandlerFunc
 					return
 				}
 			}
-
-			debug.PrintStack()
 		}()
 
 		next(w, req)

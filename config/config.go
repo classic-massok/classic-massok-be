@@ -8,7 +8,8 @@ import (
 
 type Config struct {
 	Logging struct {
-		HTTPVerbose bool `yaml:"httpVerbose"`
+		StdOutPanics bool `yaml:"stdOutPanics"`
+		HTTPVerbose  bool `yaml:"httpVerbose"`
 	} `yaml:"logging"`
 	Server struct {
 		Host string `yaml:"host"`
