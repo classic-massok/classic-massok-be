@@ -32,6 +32,8 @@ func (q *query) User(ctx context.Context, input models.UserInput) (*models.User,
 		return nil, err
 	}
 
+	panic("AH")
+
 	return &models.User{
 		bizUser.GetID(),
 		bizUser.Email,

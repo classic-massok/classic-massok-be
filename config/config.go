@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	Logging struct {
-		Panics bool `yaml:"panics"`
+		HTTPVerbose bool `yaml:"httpVerbose"`
 	} `yaml:"logging"`
 	Server struct {
 		Host string `yaml:"host"`

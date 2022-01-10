@@ -10,6 +10,7 @@ import (
 	"github.com/classic-massok/classic-massok-be/api/graphql"
 	"github.com/classic-massok/classic-massok-be/api/rest"
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/config"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
 )
@@ -19,7 +20,7 @@ type Router struct {
 	UsersBiz usersBiz
 }
 
-func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz) http.Handler { // TODO: should this be "Set" or "Get"
+func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz, cfg *config.Config) http.Handler { // TODO: should this be "Set" or "Get"
 	e := echo.New()
 	e.IPExtractor = echo.ExtractIPDirect()
 
@@ -34,7 +35,7 @@ func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz) http.Handler { // TO
 	r.getRest(resourceRepoBiz).Configure(restRouter)
 
 	graphqlRouter := apiRouter.Group("/graphql")
-	r.getGraphQL(resourceRepoBiz).Configure(graphqlRouter)
+	r.getGraphQL(resourceRepoBiz, cfg).Configure(graphqlRouter)
 
 	return e
 }
@@ -59,11 +60,12 @@ func (r *Router) getRest(resourceRepoBiz resourceRepoBiz) *rest.Rest {
 	}
 }
 
-func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz) *graphql.GraphQL {
+func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz, cfg *config.Config) *graphql.GraphQL {
 	return &graphql.GraphQL{
 		r.ACLBiz,
 		resourceRepoBiz,
 		r.UsersBiz,
+		cfg,
 	}
 }
 

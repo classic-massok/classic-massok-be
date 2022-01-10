@@ -3,6 +3,8 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"os"
+	"runtime/debug"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -11,6 +13,8 @@ import (
 	"github.com/classic-massok/classic-massok-be/api/graphql/generated"
 	"github.com/classic-massok/classic-massok-be/api/graphql/resolvers"
 	"github.com/classic-massok/classic-massok-be/business"
+	"github.com/classic-massok/classic-massok-be/config"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
 )
 
@@ -18,6 +22,8 @@ type GraphQL struct {
 	ACLBiz          accessAllower
 	ResourceRepoBiz resourceRepoBiz
 	UsersBiz        usersBiz
+
+	Cfg *config.Config
 }
 
 func (g *GraphQL) Configure(graphql *echo.Group) {
@@ -58,6 +64,18 @@ func (g *GraphQL) graphqlMain(c echo.Context) error {
 	srv := handler.NewDefaultServer(
 		generated.NewExecutableSchema(config),
 	)
+
+	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) error {
+		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr)
+		debug.PrintStack()
+
+		if g.Cfg.Logging.HTTPVerbose {
+			return fmt.Errorf("%w: %s\n\n%s", lib.ErrServerError, err, string(debug.Stack()))
+		}
+
+		return lib.ErrServerError
+	})
 
 	srv.ServeHTTP(c.Response(), c.Request())
 	return nil

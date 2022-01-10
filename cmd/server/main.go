@@ -48,7 +48,7 @@ func main() {
 			db := client.Database(cfg.Database.Name)
 
 			go func() {
-				err := serveHTTP(getEchoRouter(db), cfg)
+				err := serveHTTP(getEchoRouter(db, cfg), cfg)
 				errChan <- err
 			}()
 
@@ -100,11 +100,11 @@ func panicsReturn500(next http.HandlerFunc, cfg *config.Config) http.HandlerFunc
 			if r := recover(); r != nil {
 				// TODO: create logger for errors and log stack traces
 				var trace interface{}
-				if cfg.Logging.Panics {
-					trace = string(debug.Stack())
+				if cfg.Logging.HTTPVerbose {
+					trace = fmt.Sprintf("%s\n\n%s", r, string(debug.Stack()))
 				}
 
-				data, err := json.Marshal(core.JSON(req.Context().Value(lib.EchoContextKey).(echo.Context), 500, trace, "internal server error"))
+				data, err := json.Marshal(core.JSON(req.Context().Value(lib.EchoContextKey).(echo.Context), 500, trace, lib.ErrServerError))
 				if err != nil {
 					// TODO: log error returning panic 500 here
 					return
@@ -115,6 +115,8 @@ func panicsReturn500(next http.HandlerFunc, cfg *config.Config) http.HandlerFunc
 					return
 				}
 			}
+
+			debug.PrintStack()
 		}()
 
 		next(w, req)
