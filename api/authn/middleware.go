@@ -76,6 +76,7 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 	return next(c)
 }
 
+//counterfeiter:generate . userGetter
 type userGetter interface {
 	Get(ctx context.Context, id string) (*business.User, error)
 }
