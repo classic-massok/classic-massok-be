@@ -1,10 +1,12 @@
 package authz
 
 import (
-	"github.com/classic-massok/classic-massok-be/business"
+	"context"
+	"fmt"
+
+	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -25,7 +27,7 @@ func RequiresPermission(c echo.Context, aclBiz accessAllower, action string) err
 	if rolesVal == nil {
 		return lib.ErrUnauthorized
 	}
-	roles := rolesVal.(business.Roles)
+	roles := rolesVal.(bizmodels.Roles)
 
 	userIDVal := c.Get(lib.UserIDKey)
 	if userIDVal == nil {
@@ -42,7 +44,7 @@ func RequiresPermission(c echo.Context, aclBiz accessAllower, action string) err
 	allowed, err := aclBiz.AccessAllowed(c.Request().Context(), resource, action, userID, roles)
 	if err != nil {
 		// TODO: log this
-		return errors.Wrap(lib.ErrServerError, err.Error()) // TODO: is this the right order of errors?
+		return fmt.Errorf("%w: %v", lib.ErrServerError, err) // TODO: is this the right order of errors?
 	}
 
 	if !allowed {
@@ -50,4 +52,14 @@ func RequiresPermission(c echo.Context, aclBiz accessAllower, action string) err
 	}
 
 	return nil
+}
+
+//counterfeiter:generate . resourceGetter
+type resourceGetter interface {
+	Get(ctx context.Context, resourceType, resourceID string) (interface{}, error)
+}
+
+//counterfeiter:generate . accessAllower
+type accessAllower interface {
+	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles bizmodels.Roles) (bool, error)
 }

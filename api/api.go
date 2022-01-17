@@ -9,7 +9,7 @@ import (
 	"github.com/classic-massok/classic-massok-be/api/authz"
 	"github.com/classic-massok/classic-massok-be/api/graphql"
 	"github.com/classic-massok/classic-massok-be/api/rest"
-	"github.com/classic-massok/classic-massok-be/business"
+	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
 	"github.com/classic-massok/classic-massok-be/config"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
@@ -26,8 +26,19 @@ func (r *Router) SetRouter(resourceRepoBiz resourceRepoBiz, cfg *config.Config) 
 
 	authnMW := r.getAuthnMW()
 
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set(lib.AccessTokenPrvKeyPathKey, cfg.Tokens.AccessTokenPrvKeyPath)
+			c.Set(lib.AccessTokenPubKeyPathKey, cfg.Tokens.AccessTokenPubKeyPath)
+			c.Set(lib.RefreshTokenPrvKeyPathKey, cfg.Tokens.RefreshTokenPrvKeyPath)
+			c.Set(lib.RefreshTokenPubKeyPathKey, cfg.Tokens.RefreshTokenPubKeyPath)
+			ctx := context.WithValue(c.Request().Context(), lib.EchoContextKey, c)
+			ctx = context.WithValue(ctx, lib.IPAddressKey, c.Echo().IPExtractor(c.Request()))
+			c.SetRequest(c.Request().WithContext(ctx))
+			return next(c)
+		}
+	})
 	e.Use(authnMW.ValidateToken)
-	e.Use(bindContext)
 
 	apiRouter := e.Group("/api")
 
@@ -69,15 +80,6 @@ func (r *Router) getGraphQL(resourceRepoBiz resourceRepoBiz, cfg *config.Config)
 	}
 }
 
-func bindContext(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		ctx := context.WithValue(c.Request().Context(), lib.EchoContextKey, c)
-		ctx = context.WithValue(ctx, lib.IPAddressKey, c.Echo().IPExtractor(c.Request()))
-		c.SetRequest(c.Request().WithContext(ctx))
-		return next(c)
-	}
-}
-
 func echoContextFromContext(ctx context.Context) (echo.Context, error) {
 	echoContext := ctx.Value(lib.EchoContextKey)
 	if echoContext == nil {
@@ -94,7 +96,7 @@ func echoContextFromContext(ctx context.Context) (echo.Context, error) {
 }
 
 type aclBiz interface {
-	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles business.Roles) (bool, error)
+	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles bizmodels.Roles) (bool, error)
 }
 
 type resourceRepoBiz interface {
@@ -103,9 +105,9 @@ type resourceRepoBiz interface {
 
 type usersBiz interface {
 	Authn(ctx context.Context, email, password string) (string, map[string]string, error)
-	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
-	Get(ctx context.Context, id string) (*business.User, error)
-	GetAll(ctx context.Context) ([]*business.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, udpateCusKey bool, userEdit business.UserEdit) (*business.User, error)
+	New(ctx context.Context, loggedInUserID, password string, user bizmodels.User) (string, error)
+	Get(ctx context.Context, id string) (*bizmodels.User, error)
+	GetAll(ctx context.Context) ([]*bizmodels.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, udpateCusKey bool, userEdit bizmodels.UserEdit) (*bizmodels.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
 }

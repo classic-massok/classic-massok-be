@@ -3,6 +3,7 @@ module github.com/classic-massok/classic-massok-be
 go 1.16
 
 require (
+	bou.ke/monkey v1.0.2
 	github.com/99designs/gqlgen v0.14.0
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible

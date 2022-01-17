@@ -2,13 +2,12 @@ package resolvers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/classic-massok/classic-massok-be/api/graphql/generated"
-	"github.com/classic-massok/classic-massok-be/business"
-	"github.com/classic-massok/classic-massok-be/lib"
-	"github.com/labstack/echo/v4"
+	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
 )
+
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 type Resolver struct {
 	UsersBiz usersBiz
@@ -28,26 +27,12 @@ type mutation struct{ *Resolver }
 
 type query struct{ *Resolver }
 
-func echoContextFromContext(ctx context.Context) (echo.Context, error) {
-	echoContext := ctx.Value(lib.EchoContextKey)
-	if echoContext == nil {
-		err := fmt.Errorf("could not retrieve echo.Context")
-		return nil, err
-	}
-
-	ec, ok := echoContext.(echo.Context)
-	if !ok {
-		err := fmt.Errorf("echo.Context has wrong type")
-		return nil, err
-	}
-	return ec, nil
-}
-
+//counterfeiter:generate . usersBiz
 type usersBiz interface {
 	Authn(ctx context.Context, email, password string) (string, map[string]string, error)
-	New(ctx context.Context, loggedInUserID, password string, user business.User) (string, error)
-	Get(ctx context.Context, id string) (*business.User, error)
-	GetAll(ctx context.Context) ([]*business.User, error)
-	Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit business.UserEdit) (*business.User, error)
+	New(ctx context.Context, loggedInUserID, password string, user bizmodels.User) (string, error)
+	Get(ctx context.Context, id string) (*bizmodels.User, error)
+	GetAll(ctx context.Context) ([]*bizmodels.User, error)
+	Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit bizmodels.UserEdit) (*bizmodels.User, error)
 	Delete(ctx context.Context, id, loggedInUserID string) error
 }

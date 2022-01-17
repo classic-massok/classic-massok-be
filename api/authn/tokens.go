@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -8,7 +9,10 @@ import (
 	"strings"
 	"time"
 
+	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
+	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/golang-jwt/jwt"
+	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,7 +23,7 @@ const (
 	RefreshTokenType = "Refresh"
 )
 
-func GenerateAccessToken(userID string) (string, int64, error) {
+func GenerateAccessToken(c echo.Context, userID string) (string, int64, error) {
 	expiry := time.Now().Add(15 * time.Minute).Unix()
 	claims := tokenClaims{
 		UserID:    userID,
@@ -30,11 +34,11 @@ func GenerateAccessToken(userID string) (string, int64, error) {
 		},
 	}
 
-	token, err := generateToken("api/authn/access_private_key.pem", claims)
+	token, err := generateToken(c.Get(lib.AccessTokenPrvKeyPathKey).(string), claims)
 	return token, expiry, err
 }
 
-func GenerateRefreshToken(userID, cusKey string) (string, int64, error) {
+func GenerateRefreshToken(c echo.Context, userID, cusKey string) (string, int64, error) {
 	hashedCusKey, err := bcrypt.GenerateFromPassword([]byte(cusKey), bcrypt.DefaultCost)
 	if err != nil {
 		return "", 0, fmt.Errorf("error generating token: %w", err)
@@ -51,12 +55,12 @@ func GenerateRefreshToken(userID, cusKey string) (string, int64, error) {
 		},
 	}
 
-	token, err := generateToken("api/authn/refresh_private_key.pem", claims)
+	token, err := generateToken(c.Get(lib.RefreshTokenPrvKeyPathKey).(string), claims)
 	return token, expiry, err
 }
 
-func generateToken(permFileName string, claims jwt.Claims) (string, error) {
-	signBytes, err := ioutil.ReadFile(permFileName)
+func generateToken(pemFilePath string, claims jwt.Claims) (string, error) {
+	signBytes, err := ioutil.ReadFile(pemFilePath)
 	if err != nil {
 		return "", fmt.Errorf("error generating token: %w", err)
 	}
@@ -103,3 +107,9 @@ type tokenClaims struct {
 	TokenType string `json:"tokenType"`
 	jwt.StandardClaims
 }
+
+//counterfeiter:generate . userGetter
+type userGetter interface {
+	Get(ctx context.Context, id string) (*bizmodels.User, error)
+}
+

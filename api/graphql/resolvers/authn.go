@@ -6,15 +6,13 @@ import (
 
 	"github.com/classic-massok/classic-massok-be/api/authn"
 	graphqlmodels "github.com/classic-massok/classic-massok-be/api/graphql/models"
-	"github.com/classic-massok/classic-massok-be/business"
+	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
 	"github.com/classic-massok/classic-massok-be/lib"
+	"github.com/labstack/echo/v4"
 )
 
 func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*graphqlmodels.AuthOutput, error) {
-	c, err := echoContextFromContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error logging in: %w", err)
-	}
+	c := ctx.Value(lib.EchoContextKey).(echo.Context)
 
 	userID, cusKeys, err := m.UsersBiz.Authn(ctx, input.Email, input.Password)
 	if err != nil {
@@ -24,17 +22,17 @@ func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*
 	c.Set(lib.UserIDKey, userID) // TODO: Do we need to do this? maybe for loggiing?
 	ctx = context.WithValue(ctx, lib.CusKeysKey, cusKeys)
 
-	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
+	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, bizmodels.UserEdit{})
 	if err != nil {
 		return nil, fmt.Errorf("error logging in: %w", err)
 	}
 
-	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(userID)
+	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(c, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error logging in: %w", err)
 	}
 
-	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(userID, bizUser.GetCusKey(ctx.Value("IPAddress").(string)))
+	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(c, userID, bizUser.CusKeys[ctx.Value("IPAddress").(string)])
 	if err != nil {
 		return nil, fmt.Errorf("error logging in: %w", err)
 	}
@@ -46,10 +44,7 @@ func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*
 }
 
 func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput, error) {
-	c, err := echoContextFromContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error refreshing token: %w", err)
-	}
+	c := ctx.Value(lib.EchoContextKey).(echo.Context)
 
 	tokenTypeVal := c.Get(lib.TokenTypeKey)
 	if tokenTypeVal == nil {
@@ -69,17 +64,17 @@ func (m *mutation) RefreshToken(ctx context.Context) (*graphqlmodels.AuthOutput,
 	userID := userIDVal.(string)
 	ctx = context.WithValue(ctx, lib.CusKeysKey, c.Get(lib.CusKeysKey))
 
-	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, business.UserEdit{})
+	bizUser, err := m.UsersBiz.Edit(ctx, userID, userID, true, bizmodels.UserEdit{})
 	if err != nil {
 		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
-	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(bizUser.GetID())
+	accessToken, accessTokenExpiry, err := authn.GenerateAccessToken(c, bizUser.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
-	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(userID, bizUser.GetCusKey(c.Echo().IPExtractor(c.Request())))
+	refreshToken, refreshTokenExpiry, err := authn.GenerateRefreshToken(c, userID, bizUser.CusKeys[c.Echo().IPExtractor(c.Request())])
 	if err != nil {
 		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}

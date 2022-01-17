@@ -101,7 +101,6 @@ func panicsReturn500(next http.HandlerFunc, cfg *config.Config) http.HandlerFunc
 				if cfg.Logging.StdOutPanics {
 					fmt.Fprintln(os.Stderr, r)
 					fmt.Fprintln(os.Stderr)
-					debug.PrintStack()
 				}
 
 				// TODO: create logger for errors and log stack traces

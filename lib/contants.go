@@ -8,4 +8,9 @@ const (
 	TokenTypeKey   = "TokenType"
 	IPAddressKey   = "IPAddress"
 	EchoContextKey = "EchoContext"
+
+	AccessTokenPrvKeyPathKey  = "AccessTokenPrvKeyPath"
+	AccessTokenPubKeyPathKey  = "AccessTokenPubKeyPath"
+	RefreshTokenPubKeyPathKey = "RefreshTokenPubKeyPath"
+	RefreshTokenPrvKeyPathKey = "RefreshTokenPrvKeyPath"
 )

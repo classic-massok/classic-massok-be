@@ -1,11 +1,9 @@
 package authz
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/classic-massok/classic-massok-be/api/core"
-	"github.com/classic-massok/classic-massok-be/business"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/echo/v4"
 )
@@ -45,12 +43,4 @@ func (a *AuthzMW) RequiresPermission(action string) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
-}
-
-type resourceGetter interface {
-	Get(ctx context.Context, resourceType, resourceID string) (interface{}, error)
-}
-
-type accessAllower interface {
-	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles business.Roles) (bool, error)
 }

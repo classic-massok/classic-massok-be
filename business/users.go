@@ -3,16 +3,14 @@ package business
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/classic-massok/classic-massok-be/business/models"
 	cmmongo "github.com/classic-massok/classic-massok-be/data/cm-mongo"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/labstack/gommon/random"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
-
-const userRole ResourceRole = "users.%s.%s"
 
 // NewUsersBiz is the constructure for the users business layers
 func NewUsersBiz(db *mongo.Database) *usersBiz {
@@ -38,12 +36,12 @@ func (u *usersBiz) Authn(ctx context.Context, email, password string) (string, m
 	return mongoUser.GetID(), mongoUser.CusKeys, bcrypt.CompareHashAndPassword(mongoUser.Password, []byte(password))
 }
 
-func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user User) (string, error) {
+func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password string, user models.User) (string, error) {
 	if user.Roles == nil {
-		user.Roles = Roles{}
+		user.Roles = models.Roles{}
 	}
 
-	user.Roles = append(user.Roles, userSelf)
+	user.Roles = append(user.Roles, models.UserSelf)
 	user.Roles.DeDupe()
 
 	if err := user.Roles.Validate(); err != nil {
@@ -69,13 +67,13 @@ func (u *usersBiz) New(ctx context.Context, loggedInUserID string, password stri
 	})
 }
 
-func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
+func (u *usersBiz) Get(ctx context.Context, id string) (*models.User, error) {
 	mongoUser, err := u.data.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return &User{
+	return &models.User{
 		mongoUser.GetID(),
 		mongoUser.CusKeys,
 		mongoUser.Email,
@@ -85,7 +83,7 @@ func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
 		mongoUser.Phone,
 		mongoUser.CanSMS,
 		mongoUser.Birthday,
-		accounting{
+		models.Accounting{
 			mongoUser.CreatedAt,
 			mongoUser.UpdatedAt,
 			mongoUser.CreatedBy,
@@ -94,15 +92,15 @@ func (u *usersBiz) Get(ctx context.Context, id string) (*User, error) {
 	}, nil
 }
 
-func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
+func (u *usersBiz) GetAll(ctx context.Context) ([]*models.User, error) {
 	mongoUsers, err := u.data.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	users := make([]*User, len(mongoUsers))
+	users := make([]*models.User, len(mongoUsers))
 	for i, mongoUser := range mongoUsers {
-		users[i] = &User{
+		users[i] = &models.User{
 			mongoUser.GetID(),
 			mongoUser.CusKeys,
 			mongoUser.Email,
@@ -112,7 +110,7 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 			mongoUser.Phone,
 			mongoUser.CanSMS,
 			mongoUser.Birthday,
-			accounting{
+			models.Accounting{
 				mongoUser.CreatedAt,
 				mongoUser.UpdatedAt,
 				mongoUser.CreatedBy,
@@ -124,7 +122,7 @@ func (u *usersBiz) GetAll(ctx context.Context) ([]*User, error) {
 	return users, nil
 }
 
-func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit UserEdit) (*User, error) {
+func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCusKey bool, userEdit models.UserEdit) (*models.User, error) {
 	mongoUserEdit := cmmongo.UserEdit{
 		Email:     userEdit.Email,
 		FirstName: userEdit.FirstName,
@@ -167,7 +165,7 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 		return nil, err
 	}
 
-	return &User{
+	return &models.User{
 		mongoUser.GetID(),
 		mongoUser.CusKeys,
 		mongoUser.Email,
@@ -177,7 +175,7 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 		mongoUser.Phone,
 		mongoUser.CanSMS,
 		mongoUser.Birthday,
-		accounting{
+		models.Accounting{
 			mongoUser.CreatedAt,
 			mongoUser.UpdatedAt,
 			mongoUser.CreatedBy,
@@ -188,56 +186,6 @@ func (u *usersBiz) Edit(ctx context.Context, id, loggedInUserID string, updateCu
 
 func (u *usersBiz) Delete(ctx context.Context, id, loggedInUserID string) error {
 	return u.data.Delete(ctx, id, loggedInUserID)
-}
-
-type User struct {
-	id        string
-	cusKeys   map[string]string
-	Email     string
-	FirstName string
-	LastName  string
-	Roles     // TODO: figure out if this has the potential to be nil
-	Phone     *string
-	CanSMS    *bool
-	Birthday  *time.Time
-	accounting
-}
-
-func (u *User) acl() ACL {
-	return ACL{
-		{
-			Roles: Roles{
-				userRole.Populate(roleTypeUser, u.id),
-			},
-			Actions: lib.NewStringset(
-				"user.read",
-				"user.update",
-			),
-		},
-	}
-}
-
-func (u *User) GetID() string {
-	return u.id
-}
-
-func (u *User) GetCusKey(ipAdress string) string {
-	return u.cusKeys[ipAdress]
-}
-
-func (u *User) GetCusKeys() map[string]string {
-	return u.cusKeys
-}
-
-type UserEdit struct { // TODO: need to figure out adding/removing roles
-	Email     *string
-	Password  *string
-	FirstName *string
-	LastName  *string
-	Roles
-	Phone    *string
-	CanSMS   *bool
-	Birthday *time.Time
 }
 
 //counterfeiter:generate . usersData
@@ -251,5 +199,5 @@ type usersData interface {
 }
 
 type userGetter interface {
-	Get(ctx context.Context, id string) (*User, error)
+	Get(ctx context.Context, id string) (*models.User, error)
 }

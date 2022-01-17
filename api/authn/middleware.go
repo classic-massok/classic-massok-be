@@ -1,15 +1,17 @@
 package authn
 
 import (
-	"context"
 	"time"
 
-	"github.com/classic-massok/classic-massok-be/business"
 	"github.com/classic-massok/classic-massok-be/lib"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var parser = jwt.Parser{
+	SkipClaimsValidation: true, // we validate ourselves for ease of flow
+}
 
 type AuthnMW struct {
 	UsersBiz userGetter
@@ -22,8 +24,8 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return next(c)
 		}
 
-		token, err := jwt.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-			return validateToken(token, "api/authn/access_public_key.pem")
+		token, err := parser.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return validateToken(token, c.Get(lib.AccessTokenPubKeyPathKey).(string))
 		})
 		if err != nil {
 			return a.validateRefreshToken(c, tokenString, next)
@@ -40,17 +42,17 @@ func (a *AuthnMW) ValidateToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return next(c)
 		}
 
-		c.Set(lib.UserIDKey, user.GetID())
+		c.Set(lib.UserIDKey, user.ID)
 		c.Set(lib.RolesKey, user.Roles)
-		c.Set(lib.CusKeysKey, user.GetCusKeys())
+		c.Set(lib.CusKeysKey, user.CusKeys)
 		c.Set(lib.TokenTypeKey, claims.TokenType)
 		return next(c)
 	}
 }
 
 func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next echo.HandlerFunc) error {
-	token, err := jwt.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return validateToken(token, "api/authn/refresh_public_key.pem")
+	token, err := parser.ParseWithClaims(tokenString, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return validateToken(token, c.Get(lib.RefreshTokenPubKeyPathKey).(string))
 	})
 	if err != nil {
 		return next(c)
@@ -66,17 +68,13 @@ func (a *AuthnMW) validateRefreshToken(c echo.Context, tokenString string, next 
 		return next(c)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(claims.CusKey), []byte(user.GetCusKey(c.Echo().IPExtractor(c.Request())))); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(claims.CusKey), []byte(user.CusKeys[c.Echo().IPExtractor(c.Request())])); err != nil {
 		return next(c)
 	}
 
-	c.Set(lib.UserIDKey, user.GetID())
+	c.Set(lib.UserIDKey, user.ID)
 	c.Set(lib.TokenTypeKey, claims.TokenType)
-	c.Set(lib.CusKeysKey, user.GetCusKeys())
+	c.Set(lib.CusKeysKey, user.CusKeys)
 	return next(c)
 }
 
-//counterfeiter:generate . userGetter
-type userGetter interface {
-	Get(ctx context.Context, id string) (*business.User, error)
-}

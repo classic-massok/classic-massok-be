@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/classic-massok/classic-massok-be/api/graphql/models"
-	"github.com/classic-massok/classic-massok-be/business"
+	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
 )
 
 func (m *mutation) CreateUser(ctx context.Context, input models.CreateUserInput) (*models.CreateUserOutput, error) {
-	id, err := m.UsersBiz.New(ctx, "", input.Password, business.User{
+	id, err := m.UsersBiz.New(ctx, "", input.Password, bizmodels.User{
 		Email:     input.Email,
 		FirstName: input.FirstName,
 		LastName:  input.LastName,
@@ -35,7 +35,7 @@ func (q *query) User(ctx context.Context, input models.UserInput) (*models.User,
 	panic("AH")
 
 	return &models.User{
-		bizUser.GetID(),
+		bizUser.ID,
 		bizUser.Email,
 		bizUser.FirstName,
 		bizUser.LastName,
@@ -43,10 +43,10 @@ func (q *query) User(ctx context.Context, input models.UserInput) (*models.User,
 		bizUser.Phone,
 		bizUser.CanSMS,
 		bizUser.Birthday,
-		bizUser.GetCreatedAt(),
-		bizUser.GetUpdatedAt(),
-		bizUser.GetCreatedBy(),
-		bizUser.GetUpdatedBy(),
+		bizUser.CreatedAt,
+		bizUser.UpdatedAt,
+		bizUser.CreatedBy,
+		bizUser.UpdatedBy,
 	}, nil
 }
 
@@ -59,7 +59,7 @@ func (q *query) Users(ctx context.Context) ([]*models.User, error) {
 	users := make([]*models.User, len(bizUsers))
 	for i, bizUser := range bizUsers {
 		users[i] = &models.User{
-			bizUser.GetID(),
+			bizUser.ID,
 			bizUser.Email,
 			bizUser.FirstName,
 			bizUser.LastName,
@@ -67,10 +67,10 @@ func (q *query) Users(ctx context.Context) ([]*models.User, error) {
 			bizUser.Phone,
 			bizUser.CanSMS,
 			bizUser.Birthday,
-			bizUser.GetCreatedAt(),
-			bizUser.GetUpdatedAt(),
-			bizUser.GetCreatedBy(),
-			bizUser.GetUpdatedBy(),
+			bizUser.CreatedAt,
+			bizUser.UpdatedAt,
+			bizUser.CreatedBy,
+			bizUser.UpdatedBy,
 		}
 	}
 
@@ -78,7 +78,7 @@ func (q *query) Users(ctx context.Context) ([]*models.User, error) {
 }
 
 func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput) (*models.User, error) {
-	bizUser, err := m.UsersBiz.Edit(ctx, input.ID, "", false, business.UserEdit{
+	bizUser, err := m.UsersBiz.Edit(ctx, input.ID, "", false, bizmodels.UserEdit{
 		Email:     input.Email,
 		Password:  input.Password,
 		FirstName: input.FirstName,
@@ -92,7 +92,7 @@ func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput)
 	}
 
 	return &models.User{
-		bizUser.GetID(),
+		bizUser.ID,
 		bizUser.Email,
 		bizUser.FirstName,
 		bizUser.LastName,
@@ -100,10 +100,10 @@ func (m *mutation) UpdateUser(ctx context.Context, input models.UpdateUserInput)
 		bizUser.Phone,
 		bizUser.CanSMS,
 		bizUser.Birthday,
-		bizUser.GetCreatedAt(),
-		bizUser.GetUpdatedAt(),
-		bizUser.GetCreatedBy(),
-		bizUser.GetUpdatedBy(),
+		bizUser.CreatedAt,
+		bizUser.UpdatedAt,
+		bizUser.CreatedBy,
+		bizUser.UpdatedBy,
 	}, nil
 }
 
