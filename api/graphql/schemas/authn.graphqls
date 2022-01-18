@@ -1,0 +1,16 @@
+input LoginInput {
+    email: String!
+    password: String!
+}
+
+type AuthOutput {
+    accessToken: String!
+    accessTokenExpiry: Int64!
+    refreshToken: String!
+    refreshTokenExpiry: Int64!
+}
+
+extend type Mutation {
+    login(input: LoginInput!): AuthOutput!
+    refreshToken: AuthOutput!
+}

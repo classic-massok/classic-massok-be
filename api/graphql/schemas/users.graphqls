@@ -1,0 +1,65 @@
+type User {
+    id: ID!
+    email: String!
+    firstName: String!
+    lastName: String!
+    roles: [String!]
+    phone: String
+    canSMS: Boolean
+    birthday: Time
+    createdAt: Time!
+    updatedAt: Time!
+    createdBy: ID!
+    updatedBy: ID!
+}
+
+input UserInput {
+    id: ID! @loadResource(resourceType: "users")
+}
+
+input CreateUserInput {
+    email: String!
+    password: String!
+    firstName: String!
+    lastName: String!
+    roles: [String!]
+    phone: String
+    canSMS: Boolean
+    birthday: Time
+}
+
+type CreateUserOutput {
+    id: ID!
+}
+
+input UpdateUserInput {
+    id: ID! @loadResource(resourceType: "users")
+    email: String
+    password: String
+    firstName: String
+    lastName: String
+    addRoles: [String!]
+    removeRoles: [String!]
+    phone: String
+    canSMS: Boolean
+    birthday: Time
+}
+
+input DeleteUserInput {
+     id: ID! @loadResource(resourceType: "users")
+}
+
+type DeleteUserOutput {
+     success: Boolean!
+}
+
+extend type Query {
+    user(input: UserInput!): User @acl(action: "user.read")
+    users: [User!]
+}
+
+extend type Mutation {
+    createUser(input: CreateUserInput!): CreateUserOutput!
+    updateUser(input: UpdateUserInput!): User! @acl(action: "user.update")
+    deleteUser(input: DeleteUserInput!): DeleteUserOutput! @acl(action: "user.delete")
+}

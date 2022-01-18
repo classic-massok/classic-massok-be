@@ -1,0 +1,9 @@
+type Query
+
+type Mutation
+
+directive @loadResource(resourceType: String!) on INPUT_FIELD_DEFINITION
+directive @acl(action: String!) on OBJECT | INPUT_OBJECT | FIELD_DEFINITION
+
+scalar Time
+scalar Int64
