@@ -17,7 +17,7 @@ func MarshalTime(t time.Time) graphql.Marshaler {
 func UnmarshalTime(v interface{}) (time.Time, error) {
 	timestamp, ok := v.(int64)
 	if !ok {
-		return time.Time{}, fmt.Errorf("Date must be int64")
+		return time.Time{}, fmt.Errorf("date must be int64")
 	}
 
 	return time.Unix(timestamp, 0), nil

@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"runtime/debug"
 
@@ -19,6 +20,9 @@ import (
 )
 
 //go:generate go run github.com/99designs/gqlgen --verbose
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+var errOut io.Writer = os.Stderr
 
 type GraphQL struct {
 	ACLBiz          accessAllower
@@ -36,30 +40,9 @@ func (g *GraphQL) Configure(graphql *echo.Group) {
 }
 
 func (g *GraphQL) graphqlMain(c echo.Context) error {
-	loadResource := func(ctx context.Context, obj interface{}, next graphql.Resolver, resourceType string) (interface{}, error) {
-		input, ok := obj.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid object for id getter: %T", obj) // TODO: figure out best error here (and a pattern for gql)
-		}
-
-		if err := authz.LoadResource(c, g.ResourceRepoBiz, resourceType, input["id"].(string)); err != nil {
-			return nil, fmt.Errorf("not found")
-		}
-
-		return next(ctx)
-	}
-
-	acl := func(ctx context.Context, obj interface{}, next graphql.Resolver, action string) (interface{}, error) {
-		if err := authz.RequiresPermission(c, g.ACLBiz, action); err != nil {
-			return nil, err
-		}
-
-		return next(ctx)
-	}
-
 	config := generated.Config{
 		Resolvers:  g.buildResolver(),
-		Directives: generated.DirectiveRoot{acl, loadResource},
+		Directives: generated.DirectiveRoot{g.acl, g.loadResource},
 		Complexity: generated.ComplexityRoot{},
 	}
 
@@ -67,26 +50,8 @@ func (g *GraphQL) graphqlMain(c echo.Context) error {
 		generated.NewExecutableSchema(config),
 	)
 
-	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) error {
-		if g.Cfg.Logging.StdOutPanics {
-			fmt.Fprintln(os.Stderr, err)
-			fmt.Fprintln(os.Stderr)
-			debug.PrintStack()
-		}
+	srv.SetRecoverFunc(g.recover)
 
-		if g.Cfg.Logging.HTTPVerbose {
-			return fmt.Errorf("%w: %s\n\n%s", lib.ErrServerError, err, string(debug.Stack()))
-		}
-
-		return lib.ErrServerError
-	})
-
-	srv.ServeHTTP(c.Response(), c.Request())
-	return nil
-}
-
-func graphqlPlayground(c echo.Context) error {
-	srv := playground.Handler("GraphQL playground", "/api/graphql")
 	srv.ServeHTTP(c.Response(), c.Request())
 	return nil
 }
@@ -97,14 +62,60 @@ func (g *GraphQL) buildResolver() *resolvers.Resolver {
 	}
 }
 
+func (g *GraphQL) loadResource(ctx context.Context, obj interface{}, next graphql.Resolver, resourceType string) (interface{}, error) {
+	c := ctx.Value(lib.EchoContextKey).(echo.Context)
+	input, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid object for id getter: %T", obj) // TODO: figure out best error here (and a pattern for gql)
+	}
+
+	if err := authz.LoadResource(c, g.ResourceRepoBiz, resourceType, input["id"].(string)); err != nil {
+		return nil, fmt.Errorf("not found")
+	}
+
+	return next(ctx)
+}
+
+func (g *GraphQL) acl(ctx context.Context, obj interface{}, next graphql.Resolver, action string) (interface{}, error) {
+	c := ctx.Value(lib.EchoContextKey).(echo.Context)
+	if err := authz.RequiresPermission(c, g.ACLBiz, action); err != nil {
+		return nil, err
+	}
+
+	return next(ctx)
+}
+
+func (g *GraphQL) recover(ctx context.Context, err interface{}) error {
+	if g.Cfg.Logging.StdOutPanics {
+		fmt.Fprintln(errOut, err)
+		fmt.Fprintln(errOut)
+		fmt.Fprintln(errOut, string(debug.Stack()))
+	}
+
+	if g.Cfg.Logging.HTTPVerbose {
+		return fmt.Errorf("%w: %v\n\n%s", lib.ErrServerError, err, string(debug.Stack()))
+	}
+
+	return lib.ErrServerError
+}
+
+func graphqlPlayground(c echo.Context) error {
+	srv := playground.Handler("GraphQL playground", "/api/graphql")
+	srv.ServeHTTP(c.Response(), c.Request())
+	return nil
+}
+
+//counterfeiter:generate . accessAllower
 type accessAllower interface {
 	AccessAllowed(ctx context.Context, resource interface{}, action, userID string, roles bizmodels.Roles) (bool, error)
 }
 
+//counterfeiter:generate . resourceRepoBiz
 type resourceRepoBiz interface {
 	Get(ctx context.Context, resourceType, resourceID string) (interface{}, error)
 }
 
+//counterfeiter:generate . usersBiz
 type usersBiz interface {
 	Authn(ctx context.Context, email, password string) (string, map[string]string, error)
 	New(ctx context.Context, loggedInUserID, password string, user bizmodels.User) (string, error)

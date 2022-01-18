@@ -11,6 +11,8 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// TODO: should we interface authn?
+
 func (m *mutation) Login(ctx context.Context, input graphqlmodels.LoginInput) (*graphqlmodels.AuthOutput, error) {
 	c := ctx.Value(lib.EchoContextKey).(echo.Context)
 

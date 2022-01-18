@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/classic-massok/classic-massok-be/api/authn"
 	graphqlmodels "github.com/classic-massok/classic-massok-be/api/graphql/models"
 	"github.com/classic-massok/classic-massok-be/api/graphql/resolvers/resolversfakes"
 	bizmodels "github.com/classic-massok/classic-massok-be/business/models"
@@ -195,5 +196,268 @@ func TestMutation_Login_refreshTokenError(t *testing.T) {
 	authOutput, err := m.Login(ctx, graphqlmodels.LoginInput{"", ""})
 
 	require.EqualError(t, err, "error logging in: error generating token: open : no such file or directory")
+	require.Nil(t, authOutput)
+}
+
+func TestMutation_RefreshToken(t *testing.T) {
+	cusKeys := map[string]string{
+		"a": "1",
+		"b": "2",
+	}
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return &bizmodels.User{
+						CusKeys: cusKeys,
+					}, nil
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.TokenTypeKey, authn.RefreshTokenType)
+	c.Set(lib.UserIDKey, "")
+	c.Set(lib.AccessTokenPrvKeyPathKey, "../../authn/access_private_key.pem")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "../../authn/refresh_private_key.pem")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.NoError(t, err)
+	require.NotNil(t, authOutput)
+	require.NotEmpty(t, authOutput.AccessToken)
+	require.NotEmpty(t, authOutput.RefreshToken)
+	require.NotZero(t, authOutput.AccessTokenExpiry)
+	require.NotZero(t, authOutput.RefreshTokenExpiry)
+}
+
+func TestMutation_RefreshToken_nilTokenType(t *testing.T) {
+	cusKeys := map[string]string{
+		"a": "1",
+		"b": "2",
+	}
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return &bizmodels.User{
+						CusKeys: cusKeys,
+					}, nil
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.UserIDKey, "")
+	c.Set(lib.AccessTokenPrvKeyPathKey, "../../authn/access_private_key.pem")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "../../authn/refresh_private_key.pem")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.EqualError(t, err, lib.ErrUnauthorized.Error())
+	require.Nil(t, authOutput)
+}
+
+func TestMutation_RefreshToken_badTokenType(t *testing.T) {
+	cusKeys := map[string]string{
+		"a": "1",
+		"b": "2",
+	}
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return &bizmodels.User{
+						CusKeys: cusKeys,
+					}, nil
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.TokenTypeKey, authn.AccessTokenType)
+	c.Set(lib.UserIDKey, "")
+	c.Set(lib.AccessTokenPrvKeyPathKey, "../../authn/access_private_key.pem")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "../../authn/refresh_private_key.pem")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.EqualError(t, err, lib.ErrForbidden.Error())
+	require.Nil(t, authOutput)
+}
+
+func TestMutation_RefreshToken_nilUserID(t *testing.T) {
+	cusKeys := map[string]string{
+		"a": "1",
+		"b": "2",
+	}
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return &bizmodels.User{
+						CusKeys: cusKeys,
+					}, nil
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.TokenTypeKey, authn.RefreshTokenType)
+	c.Set(lib.AccessTokenPrvKeyPathKey, "../../authn/access_private_key.pem")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "../../authn/refresh_private_key.pem")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.EqualError(t, err, lib.ErrUnauthorized.Error())
+	require.Nil(t, authOutput)
+}
+
+func TestMutation_RefreshToken_userEditError(t *testing.T) {
+	expectedErr := fmt.Errorf("some error")
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return nil, expectedErr
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.TokenTypeKey, authn.RefreshTokenType)
+	c.Set(lib.UserIDKey, "")
+	c.Set(lib.AccessTokenPrvKeyPathKey, "../../authn/access_private_key.pem")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "../../authn/refresh_private_key.pem")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.ErrorAs(t, err, &expectedErr)
+	require.Nil(t, authOutput)
+}
+
+func TestMutation_RefreshToken_accessTokenError(t *testing.T) {
+	cusKeys := map[string]string{
+		"a": "1",
+		"b": "2",
+	}
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return &bizmodels.User{
+						CusKeys: cusKeys,
+					}, nil
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.TokenTypeKey, authn.RefreshTokenType)
+	c.Set(lib.UserIDKey, "")
+	c.Set(lib.AccessTokenPrvKeyPathKey, "")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "../../authn/refresh_private_key.pem")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.EqualError(t, err, "error refreshing token: error generating token: open : no such file or directory")
+	require.Nil(t, authOutput)
+}
+
+func TestMutation_RefreshToken_refreshTokenError(t *testing.T) {
+	cusKeys := map[string]string{
+		"a": "1",
+		"b": "2",
+	}
+
+	m := &mutation{
+		&Resolver{
+			&resolversfakes.FakeUsersBiz{
+				EditStub: func(c context.Context, s1, s2 string, b bool, ue bizmodels.UserEdit) (*bizmodels.User, error) {
+					return &bizmodels.User{
+						CusKeys: cusKeys,
+					}, nil
+				},
+			},
+		},
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	res := httptest.NewRecorder()
+	c := e.NewContext(req, res)
+
+	c.Echo().IPExtractor = func(*http.Request) string { return "1" }
+	c.Set(lib.TokenTypeKey, authn.RefreshTokenType)
+	c.Set(lib.UserIDKey, "")
+	c.Set(lib.AccessTokenPrvKeyPathKey, "../../authn/access_private_key.pem")
+	c.Set(lib.RefreshTokenPrvKeyPathKey, "")
+
+	ctx := context.WithValue(context.Background(), lib.IPAddressKey, "1")
+	ctx = context.WithValue(ctx, lib.EchoContextKey, c)
+
+	authOutput, err := m.RefreshToken(ctx)
+
+	require.EqualError(t, err, "error refreshing token: error generating token: open : no such file or directory")
 	require.Nil(t, authOutput)
 }

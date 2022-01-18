@@ -6,6 +6,7 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/99designs/gqlgen v0.14.0
 	github.com/agnivade/levenshtein v1.1.1 // indirect
+	github.com/aws/aws-sdk-go v1.42.35
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/labstack/gommon v0.3.0
